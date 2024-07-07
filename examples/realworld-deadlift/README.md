@@ -1,23 +1,36 @@
-# ![RealWorld Example App](logo.png)
+# RealWorld Deadlift
 
-> ### [Svelte](https://github.com/sveltejs/svelte) codebase containing real world examples (CRUD, auth, advanced patterns, etc) that adheres to the [RealWorld](https://github.com/gothinkster/realworld) spec and API.
+An example fullstack application that utilizes the fetch API with WASM
 
-### [Demo](https://realworld.svelte.dev)&nbsp;&nbsp;&nbsp;&nbsp;[RealWorld](https://github.com/gothinkster/realworld)
+### Run the example
 
-This codebase was created to demonstrate a fully fledged fullstack application built with SvelteKit including CRUD operations, authentication, routing, pagination, and more.
+1. Run the web service
 
-For more information on how to this works with other frontends/backends, head over to the [RealWorld](https://github.com/gothinkster/realworld) repo.
+```
+cargo run -p deadlift-service --bin deadlift-service
+```
 
-## Running locally
+2. In another terminal window, navigate to the realworld-deadlift example dir, seed the db, and run the app
 
-```bash
-npm install
+```
+cd examples/realworld-example
+npm i
+npm run seed
 npm run dev
 ```
 
-To build and start in prod mode:
+3. Create the workflow
 
-```bash
-npm run build
-npm run preview
 ```
+curl 'http://localhost:8080/api/v1/workflows' \
+  -H 'Content-Type: application/json' \
+  --data-raw '{"name":"realworld workflow","pipeline":["deadlift.modules.ingest.realworld-fetch","deadlift.modules.default.realworld-fetch-filter","deadlift.modules.deliver.realworld-stdout-notification"]}'
+```
+
+4. Open your browser and navigate to http://localhost:5173/
+
+5. Create an account or sign in
+
+6. Create a blog post
+
+7. See a notification that the post was created in the queue-worker logs!
