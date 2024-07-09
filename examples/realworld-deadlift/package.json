@@ -28,6 +28,7 @@
 		"vite-plugin-wasm": "^3.3.0"
 	},
 	"dependencies": {
+		"@extism/extism": "^1.0.3",
 		"nats": "^2.27.0"
 	}
 }

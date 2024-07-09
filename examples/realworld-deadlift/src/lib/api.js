@@ -1,24 +1,23 @@
 import { error } from '@sveltejs/kit';
-import { wasm_fetch } from '../../wasm-fetch/pkg/wasm_fetch.js';
+import createPlugin from '@extism/extism';
 
 const base = 'https://api.realworld.io/api';
 
-async function send({ method, path, data, token }) {
-	const opts = { method, headers: {} };
+async function send(params) {
+	const plugin = await createPlugin('wasm-fetch/target/wasm32-wasi/release/wasm_fetch.wasm', {
+		useWasi: true,
+		allowedHosts: ['api.realworld.io'],
+		runInWorker: true
+	});
 
-	if (data) {
-		opts.headers['Content-Type'] = 'application/json';
-		opts.body = JSON.stringify(data);
-	}
+	const input = new TextEncoder().encode(
+		JSON.stringify({ ...params, url: `${base}/${params.path}` })
+	);
+	const raw_res = await plugin.call('_main', input);
+	const res = JSON.parse(new TextDecoder().decode(raw_res.buffer));
 
-	if (token) {
-		opts.headers['Authorization'] = `Token ${token}`;
-	}
-
-	const res = await wasm_fetch(`${base}/${path}`, opts);
 	if (res.ok || res.status === 422) {
-		const text = await res.text();
-		return text ? JSON.parse(text) : {};
+		return res.body ?? {};
 	}
 
 	error(res.status);
