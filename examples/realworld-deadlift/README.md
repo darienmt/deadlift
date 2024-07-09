@@ -12,7 +12,17 @@ An example fullstack application that utilizes the fetch API with WASM
 cargo run -p deadlift-service --bin deadlift-service
 ```
 
-2. In another terminal window, navigate to the realworld-deadlift example dir, seed the db, and run the app
+2. Run the queue worker
+
+```
+cargo run -p deadlift-service --bin queue-worker
+```
+
+3. Start a local NATS server
+
+[install](https://formulae.brew.sh/formula/nats-server#default)
+
+4. In another terminal window, navigate to the realworld-deadlift example dir, seed the db, and run the app
 
 ```
 cd examples/realworld-example
@@ -29,7 +39,7 @@ Running `npm run seed` will attempt to compile the WASM modules, which uses the 
 - wasm32-unknown-unknown target `rustup target add wasm32-unknown-unknown`
 - wasm32-wasi target `rustup target add wasm32-wasi`
 
-3. Create the workflow
+5. Create the workflow
 
 ```
 curl 'http://localhost:8080/api/v1/workflows' \
@@ -37,10 +47,10 @@ curl 'http://localhost:8080/api/v1/workflows' \
   --data-raw '{"name":"realworld workflow","pipeline":["deadlift.modules.ingest.realworld-fetch","deadlift.modules.default.realworld-fetch-filter","deadlift.modules.deliver.realworld-stdout-notification"]}'
 ```
 
-4. Open your browser and navigate to http://localhost:5173/
+6. Open your browser and navigate to http://localhost:5173/
 
-5. Create an account or sign in
+7. Create an account or sign in
 
-6. Create a blog post
+8. Create a blog post
 
-7. See a notification that the post was created in the queue-worker logs!
+9. See a notification that the post was created in the queue-worker logs!
