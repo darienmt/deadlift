@@ -25,7 +25,7 @@ cargo run -p deadlift-service --bin queue-worker
 4. In another terminal window, navigate to the realworld-deadlift example dir, seed the db, and run the app
 
 ```
-cd examples/realworld-example
+cd examples/realworld-deadlift
 npm i
 npm run seed
 npm run dev
@@ -35,7 +35,7 @@ npm run dev
 
 Running `npm run seed` will attempt to compile the WASM modules, which uses the following items:
 
-- [wasm-bindgen](https://github.com/rustwasm/wasm-bindgen)
+- [wasm-pack](https://github.com/rustwasm/wasm-pack)
 - wasm32-unknown-unknown target `rustup target add wasm32-unknown-unknown`
 - wasm32-wasi target `rustup target add wasm32-wasi`
 

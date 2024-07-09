@@ -36,7 +36,7 @@ async function main() {
 
 	await Promise.all(modules.map((v) => v.compileFn()));
 
-	let db = new sqlite3.Database('../../crates/service/database.sqlite', (err) => {
+	let db = new sqlite3.Database('../../database.sqlite', (err) => {
 		if (err) {
 			console.error(err.message);
 			return;
