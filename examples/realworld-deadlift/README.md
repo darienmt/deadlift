@@ -19,6 +19,14 @@ npm run seed
 npm run dev
 ```
 
+#### Note
+
+Running `npm run seed` will attempt to compile the WASM modules, which uses the following items:
+
+- [wasm-bindgen](https://github.com/rustwasm/wasm-bindgen)
+- wasm32-unknown-unknown target `rustup target add wasm32-unknown-unknown`
+- wasm32-wasi target `rustup target add wasm32-wasi`
+
 3. Create the workflow
 
 ```
