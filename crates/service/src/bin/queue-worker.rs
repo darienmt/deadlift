@@ -1,13 +1,13 @@
 use std::time::Duration;
 
 use crossbeam_channel::{bounded, select, tick, Receiver};
-use diesel::prelude::*;
-use futures_util::StreamExt;
-
 use deadlift_service::schema::{modules, workflow_modules};
 use deadlift_service::{
     modules::engine::get_plugin_from_data, services::db, workflows::module::WorkflowModule,
 };
+use diesel::prelude::*;
+use extism::*;
+use futures_util::StreamExt;
 use serde_json::Value;
 
 fn ctrl_channel() -> Result<Receiver<()>, ctrlc::Error> {
@@ -19,11 +19,18 @@ fn ctrl_channel() -> Result<Receiver<()>, ctrlc::Error> {
     Ok(receiver)
 }
 
+// FIXME-- tracing!!!
+static LOGS: std::sync::Mutex<Vec<String>> = std::sync::Mutex::new(Vec::new());
+
+fn handle_logs(msg: &str) {
+    LOGS.lock().unwrap().push(msg.to_string())
+}
+
 #[tokio::main]
 async fn main() -> std::io::Result<()> {
-    dotenv::dotenv().ok();
-
     db::init();
+
+    set_log_callback(handle_logs, "extism=info").unwrap();
 
     tokio::spawn(async move {
         let conn = async_nats::connect("localhost").await.expect("nats conn");
@@ -80,9 +87,17 @@ async fn main() -> std::io::Result<()> {
 
                         current_value =
                             plugin.call::<Value, Value>("_main", current_value).unwrap();
+                        // FIXME--
                     }
 
-                    println!("result: {current_value:?}");
+                    {
+                        let mut logs = LOGS.lock().unwrap();
+                        for line in logs.iter() {
+                            print!("{}", line);
+                        }
+
+                        logs.clear();
+                    }
                 }
             })
             .await
