@@ -2,6 +2,8 @@
 
 An example fullstack application that utilizes the fetch API with WASM
 
+[credit](https://github.com/sveltejs/realworld)
+
 ### Run the example
 
 1. Run the web service
