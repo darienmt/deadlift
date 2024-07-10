@@ -11,10 +11,10 @@ main();
 async function main() {
 	const modules = [
 		{
-			wasmPath: './wasm-fetch/pkg/wasm_fetch_bg.wasm',
+			wasmPath: './wasm-fetch/target/wasm32-wasi/release/wasm_fetch.wasm',
 			title: 'Receive blog data',
 			description: null,
-			subject: 'deadlift.modules.ingest.realworld-fetch',
+			subject: 'deadlift.modules.ingest.fetch',
 			compileFn: compileWasmFetch
 		},
 		{
@@ -68,7 +68,9 @@ async function main() {
 }
 
 async function compileWasmFetch() {
-	await execPromise('wasm-pack build wasm-fetch --release');
+	await execPromise(
+		'cargo build --manifest-path wasm-fetch/Cargo.toml --release --target wasm32-wasi'
+	);
 	console.log('successfully compiled wasm-fetch');
 }
 

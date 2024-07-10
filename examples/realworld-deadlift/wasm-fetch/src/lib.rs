@@ -14,7 +14,7 @@ struct SendParams {
 
 #[plugin_fn]
 pub fn _main(Json(params): Json<SendParams>) -> FnResult<Value> {
-    let mut req = HttpRequest::new(params.url).with_method(params.method);
+    let mut req = HttpRequest::new(&params.url).with_method(&params.method);
 
     if params.data.is_some() {
         req = req.with_header(CONTENT_TYPE.as_str(), "application/json");
@@ -41,6 +41,8 @@ pub fn _main(Json(params): Json<SendParams>) -> FnResult<Value> {
         "status": status_code.as_u16(),
         "status_text": status_code.canonical_reason(),
         "ok": status_ok,
-        "body": body
+        "body": body,
+        "url": params.url,
+        "method": params.method
     }))
 }
