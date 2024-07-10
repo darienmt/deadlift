@@ -28,6 +28,6 @@
 		"vite-plugin-wasm": "^3.3.0"
 	},
 	"dependencies": {
-		"nats": "^2.27.0"
+		"deadlift-sdk": "git+https://github.com/zerosync-co/js-sdk.git"
 	}
 }
