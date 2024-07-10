@@ -6,6 +6,7 @@ const base = 'https://api.realworld.io/api';
 async function send(params) {
 	const res = await runModule(
 		'wasm-fetch/target/wasm32-wasi/release/wasm_fetch.wasm',
+		'deadlift.modules.ingest.fetch',
 		{ useWasi: true, allowedHosts: ['api.realworld.io'], runInWorker: true },
 		{ ...params, url: `${base}/${params.path}` }
 	);
