@@ -1,23 +1,5 @@
-[package]
-name = "deadlift"
-description = "Deadlift workspace"
-publish = false
-autoexamples = false
-authors.workspace = true
-edition.workspace = true
-homepage.workspace = true
-license.workspace = true
-repository.workspace = true
-rust-version.workspace = true
-version.workspace = true
-
-[dependencies]
-deadlift-service = { path = "crates/service" }
-
 [workspace]
-members = [
-  "crates/service",
-]
+members = ["engine"]
 resolver = "2"
 
 [workspace.package]
@@ -26,14 +8,5 @@ edition = "2021"
 homepage = "https://zerosync.co/"
 license = "MIT"
 repository = "https://github.com/zerosync-co/deadlift"
-rust-version = "1.77"
+rust-version = "1.80"
 version = "0.0.1"
-
-[[example]]
-name = "calculator"
-path = "examples/calculator/main.rs"
-
-[dev-dependencies]
-tokio = { version = "1.37.0", features = ["full"] }
-reqwest = { version = "0.12.4", features = ["json", "multipart"] }
-serde_json = "1.0.117"
