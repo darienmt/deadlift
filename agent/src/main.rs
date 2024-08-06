@@ -14,7 +14,7 @@ fn ctrl_channel() -> Result<Receiver<()>, ctrlc::Error> {
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    let watcher_handle = engine::run().await?;
+    let handles = engine::run().await?;
 
     let ctrl_c_events = ctrl_channel().expect("ctrl c events");
     let ticks = tick(Duration::from_secs(5));
@@ -25,7 +25,8 @@ async fn main() -> Result<()> {
 
             },
             recv(ctrl_c_events) -> _ => {
-                watcher_handle.abort();
+                handles.execution_handle.abort();
+                handles.watcher_handle.abort();
                 break;
             }
             // default => {}

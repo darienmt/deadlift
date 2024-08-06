@@ -83,3 +83,33 @@ pub async fn start_watcher_thread(
         }
     })
 }
+
+pub async fn start_execution_thread(
+    nc: async_nats::Client,
+    plugin: Arc<Mutex<Plugin>>,
+) -> tokio::task::JoinHandle<()> {
+    tokio::task::spawn(async move {
+        let mut subscriber = nc.subscribe("deadlift.executions.*").await.unwrap();
+
+        while let Some(msg) = subscriber.next().await {
+            if let Ok(mut plugin) = plugin.try_lock() {
+                let fn_name = msg.subject.as_str().split('.').last().unwrap();
+
+                let res = plugin.call::<Vec<u8>, Vec<u8>>(fn_name, msg.payload.into());
+
+                if let Ok(bytes) = res {
+                    println!(
+                        "successfully called agent; result: {}",
+                        String::from_utf8_lossy(bytes.as_slice())
+                    );
+                } else {
+                    eprintln!("failed to call agent; result: {res:?}");
+                }
+
+                continue;
+            }
+
+            eprintln!("failed to acquire plugin lock");
+        }
+    })
+}
