@@ -25,7 +25,7 @@ fn ctrl_channel() -> Result<Receiver<()>, ctrlc::Error> {
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    let handles = engine::run().await?; // TODO-- define default agent config, pass in config
+    let handles = engine::run(vec![]).await?; // FIXME-- define default agent config
 
     let ctrl_c_events = ctrl_channel().expect("ctrl c events");
     let ticks = tick(Duration::from_secs(5));
@@ -36,8 +36,8 @@ async fn main() -> Result<()> {
 
             },
             recv(ctrl_c_events) -> _ => {
-                handles.execution_handle.abort();
-                handles.watcher_handle.abort();
+                if let Some(v) = handles.execution_handle_opt { v.abort() }
+                if let Some(v) = handles.watcher_handle_opt { v.abort() }
                 break;
             }
             // default => {}

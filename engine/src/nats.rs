@@ -6,19 +6,21 @@ use std::{
 use anyhow::{anyhow, Result};
 use extism::{Plugin, PluginBuilder};
 use futures_util::StreamExt;
-use petgraph::graph::DiGraph;
 
-use crate::{config::Node, plugin::create_manifest};
+use crate::{
+    config::{GraphConfig, NatsConfig},
+    plugin::create_manifest,
+};
 
+// TODO-- no pins are needed since everything is passed around
 static NATS_CLIENT: OnceLock<Arc<RwLock<async_nats::Client>>> = OnceLock::new();
 
 static WASM_MAP: LazyLock<Arc<RwLock<HashMap<String, String>>>> =
     LazyLock::new(|| Arc::new(RwLock::new(HashMap::new())));
 
-pub async fn require_nats() -> Result<async_nats::Client> {
+pub async fn require_nats(config: &NatsConfig) -> Result<async_nats::Client> {
     if NATS_CLIENT.get().is_none() {
-        let default_nats_endpoint = "localhost:4222";
-        let nc = async_nats::connect(default_nats_endpoint).await?;
+        let nc = async_nats::connect(&config.url).await?;
 
         if NATS_CLIENT.set(Arc::new(RwLock::new(nc))).is_err() {
             // log instead of return here?
@@ -41,7 +43,7 @@ pub fn get_wasm_map() -> Arc<RwLock<HashMap<String, String>>> {
 }
 
 pub async fn start_watcher_thread(
-    graph: DiGraph<Node, ()>,
+    graph_config: GraphConfig,
     nc: async_nats::Client,
     wasm_map: Arc<RwLock<HashMap<String, String>>>,
     plugin: Arc<Mutex<Plugin>>,
@@ -63,7 +65,7 @@ pub async fn start_watcher_thread(
 
                 if is_relevant_change {
                     let updated_manifest =
-                        create_manifest(graph.clone(), nc.clone(), wasm_map.clone())
+                        create_manifest(&graph_config, nc.clone(), wasm_map.clone())
                             .await
                             .unwrap();
 
