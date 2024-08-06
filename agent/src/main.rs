@@ -12,9 +12,20 @@ fn ctrl_channel() -> Result<Receiver<()>, ctrlc::Error> {
     Ok(receiver)
 }
 
+// how to make this useful
+// run nats-server with jetstream
+// run 'deadlift wasm add <wasm path> --name <name>' to add wasm to nats object store, returns result
+// run 'deadlift agent run' cmd to start agent, passing config file path, starts lasting process
+// run 'deadlift agent call <fn name> --input <input>' to pass input into wasm modules, returns result
+//
+// then differentiate with extism:
+// - create multiple agents, do distributed wasm execution
+// - do high throughput wasm execution
+// - create demo video that showcases high throughput distributed execution
+
 #[tokio::main]
 async fn main() -> Result<()> {
-    let handles = engine::run().await?;
+    let handles = engine::run().await?; // TODO-- define default agent config, pass in config
 
     let ctrl_c_events = ctrl_channel().expect("ctrl c events");
     let ticks = tick(Duration::from_secs(5));

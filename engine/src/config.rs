@@ -1,8 +1,33 @@
-use std::sync::LazyLock;
+use std::{
+    path::Path,
+    sync::{LazyLock, OnceLock},
+};
 
 use anyhow::{anyhow, Result};
 use petgraph::graph::DiGraph;
 use serde::{Deserialize, Serialize};
+
+#[derive(Clone, Debug, Deserialize)]
+pub struct EngineConfig {
+    graph: DiGraph<Node, ()>,
+    nats: NatsConfig,
+    plugin: PluginConfig,
+}
+
+// TODO
+// -- update to encompass async_nats::ToServerAddrs
+// -- naming
+#[derive(Clone, Debug, Deserialize)]
+pub struct NatsConfig {
+    url: String,
+    enable_execution_thread: bool,
+    enable_watcher_thread: bool,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+pub struct PluginConfig {
+    wasi: bool,
+}
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Node {
@@ -13,49 +38,52 @@ pub struct Node {
     pub hash: String,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
-struct Edge {
-    source: String,
-    target: String,
+// #[derive(Clone, Debug, Deserialize, Serialize)]
+// struct Edge {
+//     source: String,
+//     target: String,
+// }
+
+// #[derive(Clone, Debug, Deserialize, Serialize)]
+// struct GraphConfig {
+//     nodes: Vec<Node>,
+//     edges: Vec<Edge>,
+// }
+
+static CONFIG: OnceLock<EngineConfig> = OnceLock::new();
+
+// fn build_graph_config(config: GraphConfig) -> Result<DiGraph<Node, ()>> {
+//     let mut graph = DiGraph::new();
+
+//     let mut indices = std::collections::HashMap::new();
+//     for node in &config.nodes {
+//         let index = graph.add_node(node.clone());
+//         indices.insert(node.name.clone(), index);
+//     }
+
+//     for edge in &config.edges {
+//         let source_index = *indices
+//             .get(&edge.source)
+//             .ok_or(anyhow!("failed to get source index"))?;
+//         let target_index = *indices
+//             .get(&edge.target)
+//             .ok_or(anyhow!("failed to get target index"))?;
+//         graph.add_edge(source_index, target_index, ());
+//     }
+
+//     Ok(graph)
+// }
+
+pub fn require_config(path: &str) -> Result<()> {
+    let raw_config = std::fs::read_to_string(path)?;
+    let config = serde_yaml::from_str::<EngineConfig>(&raw_config)?;
+    CONFIG.set(config).ok();
+
+    Ok(())
 }
 
-#[derive(Debug, Deserialize, Serialize)]
-struct GraphConfig {
-    nodes: Vec<Node>,
-    edges: Vec<Edge>,
-}
-
-static CONFIG: LazyLock<DiGraph<Node, ()>> = LazyLock::new(|| {
-    let config_path = "./config.yaml";
-    let config_contents = std::fs::read_to_string(config_path).unwrap();
-    let graph_config = serde_yaml::from_str::<GraphConfig>(&config_contents).unwrap();
-    build_graph_from_config(graph_config).unwrap()
-});
-
-fn build_graph_from_config(config: GraphConfig) -> Result<DiGraph<Node, ()>> {
-    let mut graph = DiGraph::new();
-
-    let mut indices = std::collections::HashMap::new();
-    for node in &config.nodes {
-        let index = graph.add_node(node.clone());
-        indices.insert(node.name.clone(), index);
-    }
-
-    for edge in &config.edges {
-        let source_index = *indices
-            .get(&edge.source)
-            .ok_or(anyhow!("failed to get source index"))?;
-        let target_index = *indices
-            .get(&edge.target)
-            .ok_or(anyhow!("failed to get target index"))?;
-        graph.add_edge(source_index, target_index, ());
-    }
-
-    Ok(graph)
-}
-
-pub fn get_config() -> DiGraph<Node, ()> {
-    CONFIG.clone()
+pub fn get_config() -> EngineConfig {
+    CONFIG.get().unwrap().clone()
 }
 
 #[cfg(test)]
@@ -64,6 +92,7 @@ mod tests {
 
     #[test]
     fn test_build_graph_from_config() {
+        // TODO--
         let graph_config = serde_yaml::from_str::<GraphConfig>(
             "
             nodes:
