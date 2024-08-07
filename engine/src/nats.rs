@@ -8,9 +8,11 @@ use extism::{Plugin, PluginBuilder};
 use futures_util::StreamExt;
 
 use crate::{
-    config::{GraphConfig, NatsConfig},
+    config::{NatsConfig, WasmConfig},
     plugin::create_manifest,
 };
+
+const WASM_OBJECT_STORE_NAME: &str = "wasm";
 
 // TODO-- no pins are needed since everything is passed around
 static NATS_CLIENT: OnceLock<Arc<RwLock<async_nats::Client>>> = OnceLock::new();
@@ -43,7 +45,7 @@ pub fn get_wasm_map() -> Arc<RwLock<HashMap<String, String>>> {
 }
 
 pub async fn start_watcher_thread(
-    graph_config: GraphConfig,
+    wasm_config: WasmConfig,
     nc: async_nats::Client,
     wasm_map: Arc<RwLock<HashMap<String, String>>>,
     plugin: Arc<Mutex<Plugin>>,
@@ -51,7 +53,7 @@ pub async fn start_watcher_thread(
     tokio::task::spawn(async move {
         let js = async_nats::jetstream::new(nc.clone());
 
-        let wasm_store = js.get_object_store("wasm").await.unwrap();
+        let wasm_store = js.get_object_store(WASM_OBJECT_STORE_NAME).await.unwrap();
 
         let mut watcher = wasm_store.watch().await.unwrap();
 
@@ -65,7 +67,7 @@ pub async fn start_watcher_thread(
 
                 if is_relevant_change {
                     let updated_manifest =
-                        create_manifest(&graph_config, nc.clone(), wasm_map.clone())
+                        create_manifest(&wasm_config, nc.clone(), wasm_map.clone())
                             .await
                             .unwrap();
 
@@ -98,7 +100,7 @@ pub async fn start_execution_thread(
                 let fn_name = msg.subject.as_str().split('.').last().unwrap();
 
                 let res = plugin.call::<Vec<u8>, Vec<u8>>(fn_name, msg.payload.into());
-
+                // reset memory ?
                 if let Ok(bytes) = res {
                     println!(
                         "successfully called agent; result: {}",

@@ -7,31 +7,28 @@ use anyhow::{anyhow, Result};
 use extism::{Manifest, Plugin, PluginBuilder, Wasm, WasmMetadata};
 use tokio::io::AsyncReadExt;
 
-use crate::config::{GraphConfig, PluginConfig};
+use crate::config::{PluginConfig, WasmConfig};
 
 static PLUGIN: OnceLock<Arc<Mutex<Plugin>>> = OnceLock::new();
 
 pub async fn create_manifest(
-    graph_config: &GraphConfig,
+    wasm_config: &WasmConfig,
     nc: async_nats::Client,
     wasm_map: Arc<RwLock<HashMap<String, String>>>,
 ) -> Result<Manifest> {
     let js = async_nats::jetstream::new(nc);
 
+    // TODO-- refactor this to function from nats mod
     let wasm_store = js.get_object_store("wasm").await?;
 
     let mut modules = vec![];
     let mut info = HashMap::new();
 
-    for node_index in graph_config.node_indices() {
-        let node = graph_config
-            .node_weight(node_index)
-            .ok_or(anyhow!("failed to get node from index"))?;
-
-        let mut object = wasm_store.get(&node.object).await?;
+    for node in wasm_config {
+        let mut object = wasm_store.get(&node.object_name).await?;
 
         info.insert(
-            node.name.clone(),
+            node.object_name.clone(),
             object.info.digest.clone().unwrap_or_default(),
         );
         // insert name and digest into hashmap
@@ -58,7 +55,7 @@ pub async fn create_manifest(
 }
 
 pub async fn require_plugin(
-    graph_config: &GraphConfig,
+    wasm_config: &WasmConfig,
     plugin_config: &PluginConfig,
     nc: async_nats::Client,
 ) -> Result<Arc<Mutex<Plugin>>> {
@@ -69,12 +66,8 @@ pub async fn require_plugin(
 
         let mut modules = vec![];
 
-        for node_index in graph_config.node_indices() {
-            let node = graph_config
-                .node_weight(node_index)
-                .ok_or(anyhow!("failed to get node from index"))?;
-
-            let mut object = wasm_store.get(&node.object).await?;
+        for node in wasm_config {
+            let mut object = wasm_store.get(&node.object_name).await?;
 
             let mut data = vec![];
             object.read_to_end(&mut data).await?;

@@ -14,10 +14,10 @@ pub struct EngineThreadHandles {
 }
 
 pub async fn run(config_bytes: Vec<u8>) -> Result<EngineThreadHandles> {
-    let config = require_config(config_bytes)?; // TODO-- pass config to run function instead of initializing here
+    let config = require_config(config_bytes)?;
     let nc = require_nats(&config.nats).await?;
     let wasm_map = get_wasm_map();
-    let plugin = require_plugin(&config.graph, &config.plugin, nc.clone()).await?;
+    let plugin = require_plugin(&config.wasm, &config.plugin, nc.clone()).await?;
 
     let execution_handle_opt = if config.nats.enable_execution_thread {
         Some(start_execution_thread(nc.clone(), plugin.clone()).await)
@@ -26,7 +26,7 @@ pub async fn run(config_bytes: Vec<u8>) -> Result<EngineThreadHandles> {
     };
 
     let watcher_handle_opt = if config.nats.enable_watcher_thread {
-        Some(start_watcher_thread(config.graph, nc, wasm_map, plugin).await)
+        Some(start_watcher_thread(config.wasm, nc, wasm_map, plugin).await)
     } else {
         None
     };
