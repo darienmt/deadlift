@@ -13,6 +13,7 @@ pub struct EngineThreadHandles {
     pub watcher_handle_opt: Option<JoinHandle<()>>,
 }
 
+// refactor into agent crate? then engine mainly exports call fn for embedded? or split that into another new sdk crate
 pub async fn run(config_bytes: Vec<u8>) -> Result<EngineThreadHandles> {
     let config = require_config(config_bytes)?;
     let nc = require_nats(&config.nats).await?;

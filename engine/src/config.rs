@@ -2,6 +2,8 @@ use anyhow::Result;
 use petgraph::graph::DiGraph;
 use serde::{Deserialize, Serialize};
 
+// add top level engine/deadlift/type field that is 'sdk/engine' or 'agent'
+
 // TODO-- refactor config pieces into separate files under config mod, encapsulate fields, add field defaults
 #[derive(Clone, Debug, Deserialize)]
 pub struct EngineConfig {
@@ -15,8 +17,9 @@ pub type WasmConfig = Vec<Wasm>;
 
 // how to define whether the workflow starts in this config, or ends or is simply a piece
 // receive the message/make the plugin call, if is next stage, make call
-pub type WorkflowConfig = DiGraph<WorkflowStage, ()>;
+pub type WorkflowConfig = DiGraph<WorkflowStage, ()>; // add name field
 
+// add hash field ?
 #[derive(Clone, Debug, Deserialize)]
 pub struct WorkflowStage {
     pub object_name: String,
@@ -44,10 +47,12 @@ pub struct Wasm {
     // pub name: String,
     // pub bucket: String, // assume always 'wasm' bucket
     pub object_name: String, // rename to nats_object_name and convert to enum to support local wasm files
-    pub namespace: String,
-    pub hash: String,
+    pub namespace: String,   // make optional- should be able to get this from wasm bytes
+    pub hash: String,        // make optional
     pub plugin_functions: Vec<String>, // TODO-- should be able to get this from analyzing wasm bytes, so that user does not have to provide
                                        // shared_functions ?
+                                       //
+                                       // TODO-- depends_on field with list of other modules that are depended on
 }
 
 // TODO-- rename
