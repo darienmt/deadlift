@@ -25,6 +25,7 @@ pub struct NatsConfig {
 #[derive(Clone, Debug, Deserialize)]
 pub struct PluginConfig {
     pub wasi: bool,
+    pub allowed_hosts: Vec<String>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -82,6 +83,7 @@ mod tests {
                 enable_watcher_thread: true
             plugin:
                 wasi: true
+                allowed_hosts: []
     ",
         );
 

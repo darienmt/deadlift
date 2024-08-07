@@ -88,7 +88,10 @@ pub async fn require_plugin(
             });
         }
 
-        let manifest = Manifest::new(modules);
+        let mut manifest = Manifest::new(modules);
+        if !plugin_config.allowed_hosts.is_empty() {
+            manifest = manifest.with_allowed_hosts(plugin_config.allowed_hosts.clone().into_iter())
+        }
 
         let plugin = PluginBuilder::new(manifest)
             .with_wasi(plugin_config.wasi)
