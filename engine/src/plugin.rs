@@ -5,15 +5,14 @@ use std::{
 
 use anyhow::{anyhow, Result};
 use extism::{Manifest, Plugin, PluginBuilder, Wasm, WasmMetadata};
-use petgraph::graph::DiGraph;
 use tokio::io::AsyncReadExt;
 
-use crate::config::Node;
+use crate::config::{GraphConfig, PluginConfig};
 
 static PLUGIN: OnceLock<Arc<Mutex<Plugin>>> = OnceLock::new();
 
 pub async fn create_manifest(
-    graph: DiGraph<Node, ()>,
+    graph_config: &GraphConfig,
     nc: async_nats::Client,
     wasm_map: Arc<RwLock<HashMap<String, String>>>,
 ) -> Result<Manifest> {
@@ -24,8 +23,8 @@ pub async fn create_manifest(
     let mut modules = vec![];
     let mut info = HashMap::new();
 
-    for node_index in graph.node_indices() {
-        let node = graph
+    for node_index in graph_config.node_indices() {
+        let node = graph_config
             .node_weight(node_index)
             .ok_or(anyhow!("failed to get node from index"))?;
 
@@ -59,7 +58,8 @@ pub async fn create_manifest(
 }
 
 pub async fn require_plugin(
-    graph: &DiGraph<Node, ()>,
+    graph_config: &GraphConfig,
+    plugin_config: &PluginConfig,
     nc: async_nats::Client,
 ) -> Result<Arc<Mutex<Plugin>>> {
     if PLUGIN.get().is_none() {
@@ -69,8 +69,8 @@ pub async fn require_plugin(
 
         let mut modules = vec![];
 
-        for node_index in graph.node_indices() {
-            let node = graph
+        for node_index in graph_config.node_indices() {
+            let node = graph_config
                 .node_weight(node_index)
                 .ok_or(anyhow!("failed to get node from index"))?;
 
@@ -90,7 +90,9 @@ pub async fn require_plugin(
 
         let manifest = Manifest::new(modules);
 
-        let plugin = PluginBuilder::new(manifest).with_wasi(true).build()?;
+        let plugin = PluginBuilder::new(manifest)
+            .with_wasi(plugin_config.wasi)
+            .build()?;
 
         if PLUGIN.set(Arc::new(Mutex::new(plugin))).is_err() {
             // log instead of return here?
