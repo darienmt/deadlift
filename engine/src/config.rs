@@ -36,6 +36,7 @@ pub struct Node {
     pub hash: String,
 }
 
+// TODO-- rename
 pub fn require_config(bytes: Vec<u8>) -> Result<EngineConfig> {
     let config = serde_yaml::from_slice::<EngineConfig>(&bytes)?;
     Ok(config)
