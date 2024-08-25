@@ -27,7 +27,9 @@ pub async fn run_publish_command(args: PublishArgs) -> anyhow::Result<()> {
 
     let wasm_store = get_or_create_object_store(&js, WORKFLOW_BUCKET_NAME).await?;
 
-    wasm_store.put(workflow.name.as_str(), &mut file).await?;
+    wasm_store
+        .put(workflow.name.as_str(), &mut workflow_bytes.as_slice())
+        .await?;
 
     println!("successfully published {} workflow", workflow.name);
 
