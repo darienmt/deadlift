@@ -47,8 +47,8 @@ pub struct Wasm {
     // pub name: String,
     // pub bucket: String, // assume always 'wasm' bucket
     pub object_name: String, // rename to nats_object_name and convert to enum to support local wasm files
-    pub namespace: String,   // make optional- should be able to get this from wasm bytes
-    pub hash: String,        // make optional
+    pub namespace: String, // make optional- should be able to get this from wasm bytes, or generate and assign random namespaces if multiple top level wasm
+    pub hash: String,      // make optional
     pub plugin_functions: Vec<String>, // TODO-- should be able to get this from analyzing wasm bytes, so that user does not have to provide
                                        // shared_functions ?
                                        //

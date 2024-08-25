@@ -1,8 +1,7 @@
 use clap::Args;
 use serde::Deserialize;
 
-use std::path::Path;
-use std::process::{Command, Stdio};
+use crate::utils::run_cmd_in_dir;
 
 // from https://github.com/extism/cli/blob/main/generate.go
 
@@ -86,20 +85,4 @@ async fn get_template_url(lang: &str) -> anyhow::Result<String> {
         )))?;
 
     Ok(template_data.url)
-}
-
-fn run_cmd_in_dir(dir: Option<&str>, name: &str, args: &[&str]) -> anyhow::Result<()> {
-    let mut cmd = Command::new(name);
-    cmd.args(args);
-
-    cmd.stdout(Stdio::inherit());
-    cmd.stderr(Stdio::inherit());
-
-    if let Some(d) = dir {
-        cmd.current_dir(Path::new(d));
-    }
-
-    cmd.spawn()?.wait()?;
-
-    Ok(())
 }

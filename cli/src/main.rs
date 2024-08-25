@@ -3,6 +3,11 @@ use clap::{Parser, Subcommand};
 mod module;
 use module::*;
 
+mod workflow;
+use workflow::*;
+
+pub mod utils;
+
 /// deadlift
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
@@ -15,6 +20,9 @@ struct DeadliftArgs {
 enum DeadliftCommands {
     /// Commands for interacting with deadlift modules
     Module(ModuleArgs),
+
+    /// Commands for interacting with deadlift workflows
+    Workflow(WorkflowArgs),
 }
 
 #[tokio::main]
@@ -23,5 +31,6 @@ async fn main() -> anyhow::Result<()> {
 
     match args.command {
         DeadliftCommands::Module(module_args) => run_module_command(module_args).await,
+        DeadliftCommands::Workflow(module_args) => run_workflow_command(module_args).await,
     }
 }
