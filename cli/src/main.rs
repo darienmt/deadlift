@@ -8,6 +8,9 @@ use workflow::*;
 
 pub mod utils;
 
+pub const MODULE_BUCKET_NAME: &str = "wasm";
+pub const WORKFLOW_BUCKET_NAME: &str = "workflows";
+
 /// deadlift
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
