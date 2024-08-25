@@ -4,7 +4,7 @@ use nats::{get_wasm_map, require_nats, start_execution_thread, start_watcher_thr
 use plugin::require_plugin;
 use tokio::task::JoinHandle;
 
-mod config;
+pub mod config;
 mod nats;
 mod plugin;
 

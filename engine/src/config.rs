@@ -17,7 +17,12 @@ pub type WasmConfig = Vec<Wasm>;
 
 // how to define whether the workflow starts in this config, or ends or is simply a piece
 // receive the message/make the plugin call, if is next stage, make call
-pub type WorkflowConfig = DiGraph<WorkflowStage, ()>; // add name field
+#[derive(Clone, Debug, Deserialize)]
+pub struct WorkflowConfig {
+    pub name: String,
+    #[serde(flatten)]
+    pub graph: DiGraph<WorkflowStage, ()>,
+}
 
 // add hash field ?
 #[derive(Clone, Debug, Deserialize)]
@@ -84,6 +89,7 @@ mod tests {
                   hash: 123abe
                   plugin_functions: []
             workflow:
+                name: test
                 nodes: []
                 node_holes: []
                 edge_property: directed

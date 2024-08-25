@@ -15,6 +15,8 @@ clap = { version = "4.5.16", features = ["derive"] }
 reqwest = { version = "0.12.7", features = ["json"] }
 serde = { version = "1.0.209", features = ["derive"] }
 tokio = { version = "1.39.3", features = ["full"] }
+engine = { path = "../engine" }
+serde_yaml = "0.9.34"
 
 [[bin]]
 name = "deadlift"

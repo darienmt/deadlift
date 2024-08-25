@@ -417,8 +417,10 @@ dependencies = [
  "anyhow",
  "async-nats",
  "clap",
+ "engine",
  "reqwest",
  "serde",
+ "serde_yaml",
  "tokio",
 ]
 
