@@ -1,6 +1,6 @@
 use clap::Args;
 
-use crate::MODULE_BUCKET_NAME;
+use crate::{utils::get_or_create_object_store, MODULE_BUCKET_NAME};
 
 #[derive(Args)]
 pub struct PublishArgs {
@@ -20,7 +20,7 @@ pub async fn run_publish_command(args: PublishArgs) -> anyhow::Result<()> {
     let nc = async_nats::connect(&args.nats_url).await?;
     let js = async_nats::jetstream::new(nc);
 
-    let wasm_store = js.get_object_store(MODULE_BUCKET_NAME).await?;
+    let wasm_store = get_or_create_object_store(&js, MODULE_BUCKET_NAME).await?;
 
     let mut file = tokio::fs::File::open(args.path).await?;
     wasm_store.put(args.name.as_str(), &mut file).await?;
