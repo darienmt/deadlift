@@ -46,6 +46,7 @@ pub async fn run_start_command(args: StartArgs) -> anyhow::Result<()> {
         workflow: engine::config::WorkflowConfig::default(),
         nats: engine::config::NatsConfig {
             url: args.nats_config.nats_url,
+            auth: engine::config::NatsAuthentication::default(),
             enable_execution_thread: args.nats_config.enable_execution_thread,
             enable_watcher_thread: args.nats_config.enable_watcher_thread,
         },

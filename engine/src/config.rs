@@ -44,11 +44,34 @@ pub struct NatsConfig {
     #[serde(default = "default_nats_url")]
     pub url: String,
 
+    #[serde(default)]
+    pub auth: NatsAuthentication,
+
     #[serde(default = "default_true")]
     pub enable_execution_thread: bool,
 
     #[serde(default = "default_true")]
     pub enable_watcher_thread: bool,
+}
+
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum NatsAuthentication {
+    #[default]
+    None,
+
+    BearerJwt(String),
+}
+
+impl NatsAuthentication {
+    pub fn into_connect_options(self) -> async_nats::ConnectOptions {
+        match self {
+            Self::None => async_nats::ConnectOptions::default(),
+            Self::BearerJwt(jwt) => {
+                async_nats::ConnectOptions::with_jwt(jwt, move |_| async move { Ok(vec![]) })
+            }
+        }
+    }
 }
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
@@ -117,6 +140,7 @@ mod tests {
                 edges: []
             nats:
                 url: localhost:4222
+                auth: !bearer_jwt jwt
                 enable_execution_thread: true
                 enable_watcher_thread: true
             plugin:
