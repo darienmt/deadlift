@@ -10,9 +10,9 @@ use futures_util::StreamExt;
 use crate::{
     config::{NatsConfig, WasmConfig},
     plugin::create_manifest,
+    utils::get_or_create_object_store,
+    MODULE_BUCKET_NAME,
 };
-
-const WASM_OBJECT_STORE_NAME: &str = "wasm";
 
 // TODO-- no pins are needed since everything is passed around
 static NATS_CLIENT: OnceLock<Arc<RwLock<async_nats::Client>>> = OnceLock::new();
@@ -53,7 +53,9 @@ pub async fn start_watcher_thread(
     tokio::task::spawn(async move {
         let js = async_nats::jetstream::new(nc.clone());
 
-        let wasm_store = js.get_object_store(WASM_OBJECT_STORE_NAME).await.unwrap();
+        let wasm_store = get_or_create_object_store(&js, MODULE_BUCKET_NAME)
+            .await
+            .unwrap();
 
         let mut watcher = wasm_store.watch().await.unwrap();
 

@@ -18,6 +18,8 @@ tokio = { version = "1.39.3", features = ["full"] }
 engine = { path = "../engine" }
 serde_yaml = "0.9.34"
 extism = "1.5.0"
+crossbeam-channel = "0.5.13"
+ctrlc = "3.4.5"
 
 [[bin]]
 name = "deadlift"

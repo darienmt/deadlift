@@ -2,7 +2,9 @@ use clap::Args;
 use engine::config::WorkflowConfig;
 use tokio::io::AsyncReadExt;
 
-use crate::{utils::get_or_create_object_store, WORKFLOW_BUCKET_NAME};
+use engine::WORKFLOW_BUCKET_NAME;
+
+use engine::utils::get_or_create_object_store;
 
 #[derive(Args)]
 pub struct PublishArgs {

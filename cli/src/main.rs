@@ -8,8 +8,8 @@ use workflow::*;
 
 pub mod utils;
 
-pub const MODULE_BUCKET_NAME: &str = "wasm";
-pub const WORKFLOW_BUCKET_NAME: &str = "workflows";
+mod agent;
+use agent::*;
 
 /// deadlift
 #[derive(Parser)]
@@ -26,6 +26,9 @@ enum DeadliftCommands {
 
     /// Commands for interacting with deadlift workflows
     Workflow(WorkflowArgs),
+
+    /// Commands for interacting with deadlift agents
+    Agent(AgentArgs),
 }
 
 #[tokio::main]
@@ -35,5 +38,6 @@ async fn main() -> anyhow::Result<()> {
     match args.command {
         DeadliftCommands::Module(module_args) => run_module_command(module_args).await,
         DeadliftCommands::Workflow(module_args) => run_workflow_command(module_args).await,
+        DeadliftCommands::Agent(agent_args) => run_agent_command(agent_args).await,
     }
 }

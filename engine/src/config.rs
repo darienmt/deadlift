@@ -5,11 +5,16 @@ use serde::{Deserialize, Serialize};
 // add top level engine/deadlift/type field that is 'sdk/engine' or 'agent'
 
 // TODO-- refactor config pieces into separate files under config mod, encapsulate fields, add field defaults
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct EngineConfig {
+    #[serde(default)]
     pub wasm: WasmConfig,
+
+    #[serde(default)]
     pub workflow: WorkflowConfig,
+
     pub nats: NatsConfig,
+
     pub plugin: PluginConfig,
 }
 
@@ -17,7 +22,7 @@ pub type WasmConfig = Vec<Wasm>;
 
 // how to define whether the workflow starts in this config, or ends or is simply a piece
 // receive the message/make the plugin call, if is next stage, make call
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct WorkflowConfig {
     pub name: String,
     #[serde(flatten)]
@@ -25,7 +30,7 @@ pub struct WorkflowConfig {
 }
 
 // add hash field ?
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct WorkflowStage {
     pub object_name: String,
     pub plugin_function_name: String,
@@ -34,20 +39,28 @@ pub struct WorkflowStage {
 // TODO
 // -- update to encompass async_nats::ToServerAddrs
 // -- naming
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct NatsConfig {
+    #[serde(default = "default_nats_url")]
     pub url: String,
+
+    #[serde(default = "default_true")]
     pub enable_execution_thread: bool,
+
+    #[serde(default = "default_true")]
     pub enable_watcher_thread: bool,
 }
 
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct PluginConfig {
+    #[serde(default = "default_true")]
     pub wasi: bool,
+
+    #[serde(default)]
     pub allowed_hosts: Vec<String>,
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct Wasm {
     // pub name: String,
     // pub bucket: String, // assume always 'wasm' bucket
@@ -64,6 +77,14 @@ pub struct Wasm {
 pub fn require_config(bytes: Vec<u8>) -> Result<EngineConfig> {
     let config = serde_yaml::from_slice::<EngineConfig>(&bytes)?;
     Ok(config)
+}
+
+fn default_true() -> bool {
+    true
+}
+
+fn default_nats_url() -> String {
+    String::from("localhost:4222")
 }
 
 #[cfg(test)]

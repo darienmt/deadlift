@@ -1,11 +1,9 @@
 use std::io::Read;
 
 use clap::Args;
-use engine::config::WorkflowConfig;
+use engine::{config::WorkflowConfig, MODULE_BUCKET_NAME, WORKFLOW_BUCKET_NAME};
 use extism::*;
 use tokio::io::AsyncReadExt;
-
-use crate::{MODULE_BUCKET_NAME, WORKFLOW_BUCKET_NAME};
 
 #[derive(Args)]
 pub struct CallArgs {

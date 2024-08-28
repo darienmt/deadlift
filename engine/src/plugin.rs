@@ -7,7 +7,11 @@ use anyhow::{anyhow, Result};
 use extism::{Manifest, Plugin, PluginBuilder, Wasm, WasmMetadata};
 use tokio::io::AsyncReadExt;
 
-use crate::config::{PluginConfig, WasmConfig};
+use crate::{
+    config::{PluginConfig, WasmConfig},
+    utils::get_or_create_object_store,
+    MODULE_BUCKET_NAME,
+};
 
 static PLUGIN: OnceLock<Arc<Mutex<Plugin>>> = OnceLock::new();
 
@@ -19,7 +23,7 @@ pub async fn create_manifest(
     let js = async_nats::jetstream::new(nc);
 
     // TODO-- refactor this to function from nats mod
-    let wasm_store = js.get_object_store("wasm").await?;
+    let wasm_store = get_or_create_object_store(&js, MODULE_BUCKET_NAME).await?;
 
     let mut modules = vec![];
     let mut info = HashMap::new();
@@ -62,7 +66,7 @@ pub async fn require_plugin(
     if PLUGIN.get().is_none() {
         let js = async_nats::jetstream::new(nc);
 
-        let wasm_store = js.get_object_store("wasm").await?;
+        let wasm_store = get_or_create_object_store(&js, MODULE_BUCKET_NAME).await?;
 
         let mut modules = vec![];
 

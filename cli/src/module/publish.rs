@@ -1,6 +1,7 @@
 use clap::Args;
+use engine::MODULE_BUCKET_NAME;
 
-use crate::{utils::get_or_create_object_store, MODULE_BUCKET_NAME};
+use engine::utils::get_or_create_object_store;
 
 #[derive(Args)]
 pub struct PublishArgs {
