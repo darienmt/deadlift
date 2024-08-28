@@ -12,11 +12,16 @@ pub struct StartArgs {
 
     #[command(flatten)]
     plugin_config: PluginConfig,
+
+    /// Set agent workflow
+    #[arg(long)]
+    workflow: String,
 }
 
 // TODO--
 // -- how to not redefine these types in multiple places
 // -- add clap derives under feature flag in engine crate?
+// -- cli NatsAuthentication is camel case vs snake case in engine
 
 #[derive(Args, Serialize)]
 pub struct NatsConfig {
@@ -24,11 +29,45 @@ pub struct NatsConfig {
     #[arg(long, default_value_t = String::from("localhost:4222"))]
     pub nats_url: String,
 
+    #[arg(long, default_value_t = NatsAuthentication::default())]
+    pub nats_auth: NatsAuthentication,
+
     #[arg(long, default_value_t = true)]
     pub enable_execution_thread: bool,
 
     #[arg(long, default_value_t = true)]
     pub enable_watcher_thread: bool,
+}
+
+#[derive(Clone, Debug, Default, Serialize)]
+pub enum NatsAuthentication {
+    #[default]
+    None,
+
+    BearerJwt(String),
+}
+
+impl std::str::FromStr for NatsAuthentication {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "none" => Ok(NatsAuthentication::None),
+            jwt if jwt.starts_with("BearerJwt: ") => Ok(NatsAuthentication::BearerJwt(
+                jwt["BearerJwt: ".len()..].to_string(),
+            )),
+            _ => Err(format!("Invalid authentication method: {}", s)),
+        }
+    }
+}
+
+impl std::fmt::Display for NatsAuthentication {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            NatsAuthentication::None => write!(f, "none"),
+            NatsAuthentication::BearerJwt(jwt) => write!(f, "BearerJwt: {}", jwt),
+        }
+    }
 }
 
 #[derive(Args, Serialize)]
@@ -41,12 +80,17 @@ pub struct PluginConfig {
 }
 
 pub async fn run_start_command(args: StartArgs) -> anyhow::Result<()> {
+    let auth = match args.nats_config.nats_auth {
+        NatsAuthentication::None => engine::config::NatsAuthentication::None,
+        NatsAuthentication::BearerJwt(str) => engine::config::NatsAuthentication::BearerJwt(str),
+    };
+
     let engine_config = EngineConfig {
         wasm: engine::config::WasmConfig::default(),
         workflow: engine::config::WorkflowConfig::default(),
         nats: engine::config::NatsConfig {
             url: args.nats_config.nats_url,
-            auth: engine::config::NatsAuthentication::default(),
+            auth,
             enable_execution_thread: args.nats_config.enable_execution_thread,
             enable_watcher_thread: args.nats_config.enable_watcher_thread,
         },
