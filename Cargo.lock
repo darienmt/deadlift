@@ -814,6 +814,7 @@ version = "0.0.1"
 dependencies = [
  "anyhow",
  "async-nats",
+ "clap",
  "extism",
  "futures-util",
  "petgraph",

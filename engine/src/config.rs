@@ -5,62 +5,102 @@ use serde::{Deserialize, Serialize};
 // add top level engine/deadlift/type field that is 'sdk/engine' or 'agent'
 
 // TODO-- refactor config pieces into separate files under config mod, encapsulate fields, add field defaults
+#[cfg_attr(feature = "clap", derive(clap::Args))]
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct EngineConfig {
-    #[serde(default)]
-    pub wasm: WasmConfig,
-
+    #[cfg_attr(feature = "clap", command(flatten))]
     #[serde(default)]
     pub workflow: WorkflowConfig,
 
+    #[cfg_attr(feature = "clap", command(flatten))]
     pub nats: NatsConfig,
 
+    #[cfg_attr(feature = "clap", command(flatten))]
     pub plugin: PluginConfig,
 }
 
-pub type WasmConfig = Vec<Wasm>;
-
 // how to define whether the workflow starts in this config, or ends or is simply a piece
 // receive the message/make the plugin call, if is next stage, make call
+
+#[cfg_attr(feature = "clap", derive(clap::Args))]
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct WorkflowConfig {
+    #[cfg_attr(feature = "clap", arg(long))]
     pub name: String,
+
+    #[cfg_attr(feature = "clap", arg(skip))]
     #[serde(flatten)]
     pub graph: DiGraph<WorkflowStage, ()>,
 }
 
-// add hash field ?
+#[cfg_attr(feature = "clap", derive(clap::Args))]
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct WorkflowStage {
-    pub object_name: String,
+    pub object_name: String, // rename to nats_object_name and convert to enum to support local wasm files
+    pub namespace: Option<String>, // make optional- should be able to get this from wasm bytes, or generate and assign random namespaces if multiple top level wasm
+    pub hash: Option<String>,
     pub plugin_function_name: String,
+    // plugin_functions
+    // TODO-- should be able to get this from analyzing wasm bytes, so that user does not have to provide
+    // shared_functions ?
+    //
+    // TODO-- depends_on field with list of other modules that are depended on
 }
 
 // TODO
 // -- update to encompass async_nats::ToServerAddrs
 // -- naming
+#[cfg_attr(feature = "clap", derive(clap::Args))]
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct NatsConfig {
+    #[cfg_attr(feature = "clap", arg(long, default_value_t = String::from("localhost:4222")))]
     #[serde(default = "default_nats_url")]
     pub url: String,
 
+    #[cfg_attr(feature = "clap", arg(long, default_value_t = NatsAuthentication::default()))]
     #[serde(default)]
     pub auth: NatsAuthentication,
 
+    #[cfg_attr(feature = "clap", arg(long, default_value_t = true))]
     #[serde(default = "default_true")]
     pub enable_execution_thread: bool,
 
+    #[cfg_attr(feature = "clap", arg(long, default_value_t = true))]
     #[serde(default = "default_true")]
     pub enable_watcher_thread: bool,
 }
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
 pub enum NatsAuthentication {
     #[default]
     None,
 
     BearerJwt(String),
+}
+
+#[cfg(feature = "clap")]
+impl std::str::FromStr for NatsAuthentication {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "none" => Ok(NatsAuthentication::None),
+            jwt if jwt.starts_with("BearerJwt: ") => Ok(NatsAuthentication::BearerJwt(
+                jwt["BearerJwt: ".len()..].to_string(),
+            )),
+            _ => Err(format!("Invalid authentication method: {}", s)),
+        }
+    }
+}
+
+#[cfg(feature = "clap")]
+impl std::fmt::Display for NatsAuthentication {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            NatsAuthentication::None => write!(f, "none"),
+            NatsAuthentication::BearerJwt(jwt) => write!(f, "BearerJwt: {}", jwt),
+        }
+    }
 }
 
 impl NatsAuthentication {
@@ -74,26 +114,16 @@ impl NatsAuthentication {
     }
 }
 
+#[cfg_attr(feature = "clap", derive(clap::Args))]
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct PluginConfig {
+    #[cfg_attr(feature = "clap", arg(long, default_value_t = true))]
     #[serde(default = "default_true")]
     pub wasi: bool,
 
+    #[cfg_attr(feature = "clap", arg(long))]
     #[serde(default)]
     pub allowed_hosts: Vec<String>,
-}
-
-#[derive(Clone, Debug, Default, Serialize, Deserialize)]
-pub struct Wasm {
-    // pub name: String,
-    // pub bucket: String, // assume always 'wasm' bucket
-    pub object_name: String, // rename to nats_object_name and convert to enum to support local wasm files
-    pub namespace: String, // make optional- should be able to get this from wasm bytes, or generate and assign random namespaces if multiple top level wasm
-    pub hash: String,      // make optional
-    pub plugin_functions: Vec<String>, // TODO-- should be able to get this from analyzing wasm bytes, so that user does not have to provide
-                                       // shared_functions ?
-                                       //
-                                       // TODO-- depends_on field with list of other modules that are depended on
 }
 
 // TODO-- rename
@@ -140,7 +170,7 @@ mod tests {
                 edges: []
             nats:
                 url: localhost:4222
-                auth: !bearer_jwt jwt
+                auth: !BearerJwt jwt
                 enable_execution_thread: true
                 enable_watcher_thread: true
             plugin:

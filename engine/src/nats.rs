@@ -4,15 +4,10 @@ use std::{
 };
 
 use anyhow::{anyhow, Result};
-use extism::{Plugin, PluginBuilder};
+use extism::{Manifest, Plugin, PluginBuilder, Wasm};
 use futures_util::StreamExt;
 
-use crate::{
-    config::{NatsConfig, WasmConfig},
-    plugin::create_manifest,
-    utils::get_or_create_object_store,
-    MODULE_BUCKET_NAME,
-};
+use crate::{config::NatsConfig, utils::get_or_create_object_store, MODULE_BUCKET_NAME};
 
 // TODO-- no pins are needed since everything is passed around
 static NATS_CLIENT: OnceLock<Arc<RwLock<async_nats::Client>>> = OnceLock::new();
@@ -45,9 +40,9 @@ pub fn get_wasm_map() -> Arc<RwLock<HashMap<String, String>>> {
 }
 
 pub async fn start_watcher_thread(
-    wasm_config: WasmConfig,
+    modules: Vec<Wasm>,
+    module_object_names: Arc<std::collections::HashSet<String>>,
     nc: async_nats::Client,
-    wasm_map: Arc<RwLock<HashMap<String, String>>>,
     plugin: Arc<Mutex<Plugin>>,
 ) -> tokio::task::JoinHandle<()> {
     tokio::task::spawn(async move {
@@ -61,17 +56,9 @@ pub async fn start_watcher_thread(
 
         while let Some(res) = watcher.next().await {
             if let Ok(change) = res {
-                let is_relevant_change = {
-                    let arc = wasm_map.clone();
-                    let map = arc.read().unwrap();
-                    map.get(&change.name).is_some()
-                };
-
-                if is_relevant_change {
-                    let updated_manifest =
-                        create_manifest(&wasm_config, nc.clone(), wasm_map.clone())
-                            .await
-                            .unwrap();
+                if module_object_names.clone().contains(&change.name) {
+                    // TODO-- use util from plugin mod to do this
+                    let updated_manifest = Manifest::new(modules.clone());
 
                     let updated_plugin = PluginBuilder::new(updated_manifest)
                         .with_wasi(true)
@@ -98,24 +85,25 @@ pub async fn start_execution_thread(
         let mut subscriber = nc.subscribe("deadlift.executions.*").await.unwrap();
 
         while let Some(msg) = subscriber.next().await {
-            if let Ok(mut plugin) = plugin.try_lock() {
+            let output = if let Ok(mut plugin) = plugin.try_lock() {
                 let fn_name = msg.subject.as_str().split('.').last().unwrap();
 
                 let res = plugin.call::<Vec<u8>, Vec<u8>>(fn_name, msg.payload.into());
                 // reset memory ?
-                if let Ok(bytes) = res {
-                    println!(
-                        "successfully called agent; result: {}",
-                        String::from_utf8_lossy(bytes.as_slice())
-                    );
-                } else {
-                    eprintln!("failed to call agent; result: {res:?}");
+
+                match res {
+                    Ok(bytes) => bytes,
+                    Err(e) => e.to_string().into_bytes(),
                 }
+            } else {
+                anyhow::anyhow!("failed to acquire plugin lock")
+                    .to_string()
+                    .into_bytes()
+            };
 
-                continue;
+            if let Some(reply_subject) = msg.reply {
+                nc.publish(reply_subject, output.into()).await.unwrap();
             }
-
-            eprintln!("failed to acquire plugin lock");
         }
     })
 }
