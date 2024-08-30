@@ -13,3 +13,6 @@ version = "0.0.1"
 
 [workspace.dependencies]
 engine = { path = "engine" }
+
+[patch.crates-io]
+regalloc2 = { git = "https://github.com/bytecodealliance/regalloc2.git", rev = "8eae90153534af19cff7416365f06b42838a490e" }
