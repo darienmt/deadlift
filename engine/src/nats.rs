@@ -17,7 +17,11 @@ static WASM_MAP: LazyLock<Arc<RwLock<HashMap<String, String>>>> =
 
 pub async fn require_nats(config: &NatsConfig) -> Result<async_nats::Client> {
     if NATS_CLIENT.get().is_none() {
-        let nc = async_nats::connect(&config.url).await?;
+        let nc = config
+            .auth
+            .get_connect_options()
+            .connect(&config.url)
+            .await?;
 
         if NATS_CLIENT.set(Arc::new(RwLock::new(nc))).is_err() {
             // log instead of return here?

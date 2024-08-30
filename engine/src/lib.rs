@@ -1,3 +1,5 @@
+use std::sync::LazyLock;
+
 use anyhow::Result;
 use config::require_config;
 use extism::Wasm;
@@ -17,6 +19,9 @@ pub struct EngineThreadHandles {
 
 pub const MODULE_BUCKET_NAME: &str = "wasm";
 pub const WORKFLOW_BUCKET_NAME: &str = "workflows";
+
+pub static DEFAULT_NATS_URL: LazyLock<&'static str> =
+    LazyLock::new(|| option_env!("NATS_URL").unwrap_or("localhost:4222"));
 
 // refactor into agent crate? then engine mainly exports call fn for embedded? or split that into another new sdk crate
 pub async fn run(config_bytes: Vec<u8>) -> Result<EngineThreadHandles> {

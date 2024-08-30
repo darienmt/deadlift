@@ -1,7 +1,7 @@
 use std::io::Read;
 
 use clap::Args;
-use engine::{config::WorkflowConfig, MODULE_BUCKET_NAME, WORKFLOW_BUCKET_NAME};
+use engine::{config::WorkflowConfig, DEFAULT_NATS_URL, MODULE_BUCKET_NAME, WORKFLOW_BUCKET_NAME};
 use extism::*;
 use tokio::io::AsyncReadExt;
 
@@ -11,7 +11,7 @@ pub struct CallArgs {
     name: String,
 
     /// NATS server url
-    #[arg(long, default_value_t = String::from("localhost:4222"))]
+    #[arg(long, default_value_t = DEFAULT_NATS_URL.to_string())]
     nats_url: String,
 
     /// Raw string input; can also be passed from stdin

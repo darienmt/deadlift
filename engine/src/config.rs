@@ -2,6 +2,8 @@ use anyhow::Result;
 use petgraph::graph::DiGraph;
 use serde::{Deserialize, Serialize};
 
+use crate::DEFAULT_NATS_URL;
+
 // add top level engine/deadlift/type field that is 'sdk/engine' or 'agent'
 
 // TODO-- refactor config pieces into separate files under config mod, encapsulate fields, add field defaults
@@ -53,7 +55,7 @@ pub struct WorkflowStage {
 #[cfg_attr(feature = "clap", derive(clap::Args))]
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct NatsConfig {
-    #[cfg_attr(feature = "clap", arg(long, default_value_t = String::from("localhost:4222")))]
+    #[cfg_attr(feature = "clap", arg(long, default_value_t = DEFAULT_NATS_URL.to_string()))]
     #[serde(default = "default_nats_url")]
     pub url: String,
 
@@ -70,12 +72,21 @@ pub struct NatsConfig {
     pub enable_watcher_thread: bool,
 }
 
-#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum NatsAuthentication {
-    #[default]
     None,
 
     BearerJwt(String),
+}
+
+impl Default for NatsAuthentication {
+    fn default() -> Self {
+        if let Some(jwt) = option_env!("NATS_BEARER_JWT") {
+            Self::BearerJwt(String::from(jwt))
+        } else {
+            Self::None
+        }
+    }
 }
 
 #[cfg(feature = "clap")]
@@ -104,12 +115,13 @@ impl std::fmt::Display for NatsAuthentication {
 }
 
 impl NatsAuthentication {
-    pub fn into_connect_options(self) -> async_nats::ConnectOptions {
+    pub fn get_connect_options(&self) -> async_nats::ConnectOptions {
         match self {
             Self::None => async_nats::ConnectOptions::default(),
-            Self::BearerJwt(jwt) => {
-                async_nats::ConnectOptions::with_jwt(jwt, move |_| async move { Ok(vec![]) })
-            }
+            Self::BearerJwt(jwt) => async_nats::ConnectOptions::with_jwt(
+                jwt.clone(),
+                move |_| async move { Ok(vec![]) },
+            ),
         }
     }
 }
@@ -137,7 +149,7 @@ fn default_true() -> bool {
 }
 
 fn default_nats_url() -> String {
-    String::from("localhost:4222")
+    DEFAULT_NATS_URL.to_string()
 }
 
 #[cfg(test)]
