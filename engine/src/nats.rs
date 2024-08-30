@@ -9,6 +9,8 @@ use futures_util::StreamExt;
 
 use crate::{config::NatsConfig, utils::get_or_create_object_store, MODULE_BUCKET_NAME};
 
+const DEADLIFT_EXECUTIONS_QUEUE_GROUP: &str = "deadlift_executions";
+
 // TODO-- no pins are needed since everything is passed around
 static NATS_CLIENT: OnceLock<Arc<RwLock<async_nats::Client>>> = OnceLock::new();
 
@@ -17,11 +19,7 @@ static WASM_MAP: LazyLock<Arc<RwLock<HashMap<String, String>>>> =
 
 pub async fn require_nats(config: &NatsConfig) -> Result<async_nats::Client> {
     if NATS_CLIENT.get().is_none() {
-        let nc = config
-            .auth
-            .get_connect_options()
-            .connect(&config.url)
-            .await?;
+        let nc = config.connect().await?;
 
         if NATS_CLIENT.set(Arc::new(RwLock::new(nc))).is_err() {
             // log instead of return here?
@@ -50,6 +48,7 @@ pub async fn start_watcher_thread(
     plugin: Arc<Mutex<Plugin>>,
 ) -> tokio::task::JoinHandle<()> {
     tokio::task::spawn(async move {
+        // FIXME------ this does not currently work
         let js = async_nats::jetstream::new(nc.clone());
 
         let wasm_store = get_or_create_object_store(&js, MODULE_BUCKET_NAME)
@@ -86,11 +85,20 @@ pub async fn start_execution_thread(
     plugin: Arc<Mutex<Plugin>>,
 ) -> tokio::task::JoinHandle<()> {
     tokio::task::spawn(async move {
-        let mut subscriber = nc.subscribe("deadlift.executions.*").await.unwrap();
+        let mut subscriber = nc
+            .queue_subscribe(
+                "deadlift.executions.*",
+                String::from(DEADLIFT_EXECUTIONS_QUEUE_GROUP),
+            )
+            .await
+            .unwrap();
 
         while let Some(msg) = subscriber.next().await {
             let output = if let Ok(mut plugin) = plugin.try_lock() {
                 let fn_name = msg.subject.as_str().split('.').last().unwrap();
+
+                // should the last subject part be the fn_name?
+                // it should have more connection to a workflow
 
                 let res = plugin.call::<Vec<u8>, Vec<u8>>(fn_name, msg.payload.into());
                 // reset memory ?

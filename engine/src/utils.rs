@@ -8,6 +8,7 @@ pub async fn get_or_create_object_store(
             if e.kind() == async_nats::jetstream::context::ObjectStoreErrorKind::GetStore {
                 js.create_object_store(async_nats::jetstream::object_store::Config {
                     bucket: bucket_name.to_string(),
+                    num_replicas: 1, // why does this fix the permissions issue
                     ..Default::default()
                 })
                 .await
@@ -18,3 +19,5 @@ pub async fn get_or_create_object_store(
         }
     }
 }
+
+// TODO-- fix being able to upload the same object under the same name multiple times

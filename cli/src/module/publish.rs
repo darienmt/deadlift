@@ -1,5 +1,6 @@
 use clap::Args;
-use engine::{DEFAULT_NATS_URL, MODULE_BUCKET_NAME};
+use engine::config::NatsConfig;
+use engine::MODULE_BUCKET_NAME;
 
 use engine::utils::get_or_create_object_store;
 
@@ -12,13 +13,12 @@ pub struct PublishArgs {
     #[arg(long)]
     path: String,
 
-    /// NATS server url
-    #[arg(long, default_value_t = DEFAULT_NATS_URL.to_string())]
-    nats_url: String,
+    #[command(flatten)]
+    nats_config: NatsConfig,
 }
 
 pub async fn run_publish_command(args: PublishArgs) -> anyhow::Result<()> {
-    let nc = async_nats::connect(&args.nats_url).await?;
+    let nc = args.nats_config.connect().await?;
     let js = async_nats::jetstream::new(nc);
 
     let wasm_store = get_or_create_object_store(&js, MODULE_BUCKET_NAME).await?;

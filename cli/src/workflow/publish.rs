@@ -1,8 +1,8 @@
 use clap::Args;
-use engine::config::WorkflowConfig;
+use engine::config::{NatsConfig, WorkflowConfig};
 use tokio::io::AsyncReadExt;
 
-use engine::{DEFAULT_NATS_URL, WORKFLOW_BUCKET_NAME};
+use engine::WORKFLOW_BUCKET_NAME;
 
 use engine::utils::get_or_create_object_store;
 
@@ -11,9 +11,8 @@ pub struct PublishArgs {
     /// Workflow YAML path
     path: String,
 
-    /// NATS server url
-    #[arg(long, default_value_t = DEFAULT_NATS_URL.to_string())]
-    nats_url: String,
+    #[command(flatten)]
+    nats_config: NatsConfig,
 }
 
 pub async fn run_publish_command(args: PublishArgs) -> anyhow::Result<()> {
@@ -24,7 +23,7 @@ pub async fn run_publish_command(args: PublishArgs) -> anyhow::Result<()> {
 
     let workflow = serde_yaml::from_slice::<WorkflowConfig>(workflow_bytes.as_slice())?;
 
-    let nc = async_nats::connect(&args.nats_url).await?;
+    let nc = args.nats_config.connect().await?;
     let js = async_nats::jetstream::new(nc);
 
     let wasm_store = get_or_create_object_store(&js, WORKFLOW_BUCKET_NAME).await?;

@@ -1,4 +1,8 @@
+use std::collections::HashMap;
+
 use anyhow::Result;
+use async_nats::ConnectOptions;
+use directories::ProjectDirs;
 use petgraph::graph::DiGraph;
 use serde::{Deserialize, Serialize};
 
@@ -75,13 +79,19 @@ pub struct NatsConfig {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum NatsAuthentication {
     None,
-
     BearerJwt(String),
+    Creds(String),
 }
 
 impl Default for NatsAuthentication {
+    // FIXME-- wrong use of default, should also be scoped to cli feature flag
     fn default() -> Self {
-        if let Some(jwt) = option_env!("NATS_BEARER_JWT") {
+        let proj_dirs = ProjectDirs::from("com", "ZeroSync", "deadlift").unwrap(); // FIXME--
+        let creds_path = proj_dirs.config_dir().join("user.creds");
+
+        if creds_path.is_file() {
+            Self::Creds(creds_path.to_string_lossy().to_string()) // FIXME--
+        } else if let Some(jwt) = option_env!("NATS_BEARER_JWT") {
             Self::BearerJwt(String::from(jwt))
         } else {
             Self::None
@@ -99,6 +109,9 @@ impl std::str::FromStr for NatsAuthentication {
             jwt if jwt.starts_with("BearerJwt: ") => Ok(NatsAuthentication::BearerJwt(
                 jwt["BearerJwt: ".len()..].to_string(),
             )),
+            creds if creds.starts_with("Creds: ") => Ok(NatsAuthentication::Creds(
+                creds["Creds: ".len()..].to_string(),
+            )),
             _ => Err(format!("Invalid authentication method: {}", s)),
         }
     }
@@ -110,19 +123,26 @@ impl std::fmt::Display for NatsAuthentication {
         match self {
             NatsAuthentication::None => write!(f, "none"),
             NatsAuthentication::BearerJwt(jwt) => write!(f, "BearerJwt: {}", jwt),
+            NatsAuthentication::Creds(creds) => write!(f, "Creds: {}", creds),
         }
     }
 }
 
-impl NatsAuthentication {
-    pub fn get_connect_options(&self) -> async_nats::ConnectOptions {
-        match self {
-            Self::None => async_nats::ConnectOptions::default(),
-            Self::BearerJwt(jwt) => async_nats::ConnectOptions::with_jwt(
+impl NatsConfig {
+    pub async fn connect(&self) -> Result<async_nats::Client> {
+        match &self.auth {
+            NatsAuthentication::None => ConnectOptions::default(),
+            NatsAuthentication::BearerJwt(jwt) => async_nats::ConnectOptions::with_jwt(
                 jwt.clone(),
                 move |_| async move { Ok(vec![]) },
             ),
+            NatsAuthentication::Creds(creds_path) => {
+                ConnectOptions::with_credentials_file(creds_path).await?
+            }
         }
+        .connect(&self.url)
+        .await
+        .map_err(anyhow::Error::from)
     }
 }
 
@@ -136,6 +156,28 @@ pub struct PluginConfig {
     #[cfg_attr(feature = "clap", arg(long))]
     #[serde(default)]
     pub allowed_hosts: Vec<String>,
+
+    #[cfg_attr(feature = "clap", arg(long,  value_parser=get_extism_config_from_str))]
+    #[serde(default)]
+    pub extism_config: Option<HashMap<String, String>>,
+}
+
+// feature scope this?
+fn get_extism_config_from_str(s: &str) -> Result<HashMap<String, String>, String> {
+    let mut map = HashMap::new();
+
+    for pair in s.split(',') {
+        let mut iter = pair.splitn(2, '=');
+        let key = iter
+            .next()
+            .ok_or_else(|| String::from("key must be a string"))?;
+        let value = iter
+            .next()
+            .ok_or_else(|| String::from("value must be a string"))?;
+        map.insert(key.to_string(), value.to_string());
+    }
+
+    Ok(map)
 }
 
 // TODO-- rename
