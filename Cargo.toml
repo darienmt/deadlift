@@ -9,10 +9,7 @@ homepage = "https://zerosync.co/"
 license = "MIT"
 repository = "https://github.com/zerosync-co/deadlift"
 rust-version = "1.80"
-version = "0.0.1"
+version = "0.0.1-alpha.0"
 
 [workspace.dependencies]
 engine = { path = "engine" }
-
-[patch.crates-io]
-regalloc2 = { git = "https://github.com/bytecodealliance/regalloc2.git", rev = "8eae90153534af19cff7416365f06b42838a490e" }
