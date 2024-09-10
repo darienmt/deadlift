@@ -6,6 +6,8 @@ The [deadlift](https://github.com/zerosync-co/deadlift) CLI can be used to manag
 
 ### From source
 
+* requires [rust](https://www.rust-lang.org/tools/install) 1.80.0
+
 ```
 git clone https://github.com/zerosync-co/deadlift.git
 cd <into deadlift dir>
