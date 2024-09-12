@@ -4,7 +4,13 @@ The [deadlift](https://github.com/zerosync-co/deadlift) CLI can be used to manag
 
 ## Installation
 
-### From source
+### Docker
+
+```
+docker run --rm -it adunne09/deadlift-cli:latest deadlift <args>
+```
+
+### From Source
 
 * requires [rust](https://www.rust-lang.org/tools/install) 1.80.0
 
