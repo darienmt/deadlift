@@ -69,7 +69,7 @@ pub async fn run_generate_command(args: GenerateArgs) -> anyhow::Result<()> {
 
 async fn get_template_url(lang: &str) -> anyhow::Result<String> {
     let templates_data = reqwest::get(
-        "https://raw.githubusercontent.com/zerosync/deadlift/master/cli/templates.json",
+        "https://raw.githubusercontent.com/zerosync-co/deadlift/master/cli/templates.json",
     )
     .await?
     .json::<Vec<TemplateData>>()
