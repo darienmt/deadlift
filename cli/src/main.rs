@@ -14,6 +14,9 @@ use agent::*;
 mod user;
 use user::*;
 
+mod generate;
+use generate::*;
+
 /// deadlift
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
@@ -35,6 +38,9 @@ enum DeadliftCommands {
 
     /// Commands for interacting with your ZeroSync user account
     User(UserArgs),
+
+    /// Command for generating a deadlift source project
+    Generate(GenerateArgs),
 }
 
 #[tokio::main]
@@ -46,5 +52,6 @@ async fn main() -> anyhow::Result<()> {
         DeadliftCommands::Workflow(module_args) => run_workflow_command(module_args).await,
         DeadliftCommands::Agent(agent_args) => run_agent_command(agent_args).await,
         DeadliftCommands::User(user_args) => run_user_command(user_args).await,
+        DeadliftCommands::Generate(user_args) => run_generate_command(user_args).await,
     }
 }
