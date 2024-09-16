@@ -45,15 +45,19 @@ pub async fn run_generate_command(args: GenerateArgs) -> anyhow::Result<()> {
     run_cmd_in_dir(
         Some(&args.name),
         "git",
-        &["checkout", "--orphan", "extism-init", "main"],
+        &["checkout", "--orphan", "deadlift-init", "main"],
     )?;
-
-    run_cmd_in_dir(Some(&args.name), "git", &["commit", "-am", "init: extism"])?;
 
     run_cmd_in_dir(
         Some(&args.name),
         "git",
-        &["branch", "-M", "extism-init", "main"],
+        &["commit", "-am", "init: deadlift"],
+    )?;
+
+    run_cmd_in_dir(
+        Some(&args.name),
+        "git",
+        &["branch", "-M", "deadlift-init", "main"],
     )?;
 
     run_cmd_in_dir(Some(&args.name), "git", &["remote", "remove", "origin"])?;
@@ -64,11 +68,12 @@ pub async fn run_generate_command(args: GenerateArgs) -> anyhow::Result<()> {
 }
 
 async fn get_template_url(lang: &str) -> anyhow::Result<String> {
-    let templates_data =
-        reqwest::get("https://raw.githubusercontent.com/extism/cli/main/pdk-templates.json")
-            .await?
-            .json::<Vec<TemplateData>>()
-            .await?;
+    let templates_data = reqwest::get(
+        "https://raw.githubusercontent.com/zerosync/deadlift/master/cli/templates.json",
+    )
+    .await?
+    .json::<Vec<TemplateData>>()
+    .await?;
 
     let available_langs_str = templates_data
         .iter()
