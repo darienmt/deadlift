@@ -4,12 +4,6 @@ The [deadlift](https://github.com/zerosync-co/deadlift) CLI can be used to manag
 
 ## Installation
 
-### Docker
-
-```
-docker run --rm -it adunne09/deadlift-cli:latest deadlift <args>
-```
-
 ### From Source
 
 * requires [rust](https://www.rust-lang.org/tools/install) 1.80.0
@@ -17,20 +11,26 @@ docker run --rm -it adunne09/deadlift-cli:latest deadlift <args>
 ```
 git clone https://github.com/zerosync-co/deadlift.git
 cd <into deadlift dir>
+NATS_BEARER_JWT=eyJ0eXAiOiJKV1QiLCJhbGciOiJlZDI1NTE5LW5rZXkifQ.eyJqdGkiOiIzWU1GTTdTNUFTN1JUTlM1SkRaUUpWU0M2NlFFUjdHRkJRREw2NFZTR0VBU0xaUE9OUzJRIiwiaWF0IjoxNzI1MjI4MzQ4LCJpc3MiOiJBQk01R0dVVzUyTDUzSlRJNjMzTEdIUEJRSVJRNkk3MlhBQTdXNVJDNEhGUkszSldCQjRUWlZLQyIsIm5hbWUiOiJkZWFkbGlmdC1jbGktcmVzdHJpY3RlZC11c2VyIiwic3ViIjoiVUNTTERVWkdMNUc2NERETjJURlc0RUdVUFpLT1RSNlZUUlFCNTRNWFlFRlNaRE5XNzdIUDY1R0ciLCJuYXRzIjp7InB1YiI6eyJhbGxvdyI6WyJkZWFkbGlmdC5leGVjdXRpb25zLmNsaV9jcmVhdGVfdXNlciJdfSwic3ViIjp7ImFsbG93IjpbImRlYWRsaWZ0LmV4ZWN1dGlvbnMuY2xpX2NyZWF0ZV91c2VyLnJlcGx5Il19LCJzdWJzIjotMSwiZGF0YSI6LTEsInBheWxvYWQiOi0xLCJiZWFyZXJfdG9rZW4iOnRydWUsInR5cGUiOiJ1c2VyIiwidmVyc2lvbiI6Mn19.5PWdzeLr2oMpxD6HFw6qpcqUJPMy-NvVoWSZtdZq3cRTvZS9-Oz4kkCoIxwQd0i4uwvkvSSGH-QYwySEcMbdCg \
+NATS_URL=97.118.226.37:4223 \
 cargo install --path cli
 ```
 
 ## Usage example (Rust)
 
-1. Start a local development [NATS server](https://docs.nats.io/running-a-nats-service/introduction/installation) with jetstream enabled
-
-2. Generate a module source project
+1. Create a user
 
 ```
-deadlift module generate <module name>
+deadlift user create --email <your email> --password <your password>
 ```
 
-3. Write your desired module functionality
+2. Generate a deadlift source project
+
+```
+deadlift project generate <project name>
+```
+
+3. Write your desired modules and workflow in `workflow.yml`
 
 * A module is a standard function that can receive input and return output
 
@@ -46,38 +46,9 @@ pub fn add_one(input: i32) -> FnResult<i32> {
 }
 ```
 
-4. Compile your module
+* A workflow is a graph that describes desired modules and an execution tree to facilitate integration needs
 
-```
-cd <into module dir>
-cargo build --release
-```
-
-* requires the `wasm32-wasi` target to be installed, which can be installed with:
-
-```
-rustup target add wasm32-wasi
-```
-
-5. Publish your module
-
-```
-deadlift module publish <module name> --path <wasm file path>
-```
-
-* the wasm file path will be located at `<module dir>/target/wasm32-wasi/release/<project name>.wasm`
-
-6. Repeat this process for other desired workflow modules
-
-7. Create a workflow
-
-```
-deadlift workflow generate <workflow name>
-```
-
-8. Specify your desired workflow nodes and edges per the template in `<workflow name>/workflow.yaml`
-
-Calculator Example:
+Calculator Workflow Example:
 ```
 name: "do some math"
 nodes:
@@ -93,16 +64,20 @@ edges:
     - null
 ```
 
-9. Publish your workflow
+4. Publish your project
 
 ```
-deadlift workflow publish <workflow YAML file path>
+deadlift project publish
 ```
 
-* the workflow file path will be located at `<workflow dir>/workflow.yml`
-
-10. Call your workflow with input
+* requires the `wasm32-wasi` target to be installed, which can be installed with:
 
 ```
-deadlift workflow call <workflow name> --input <your expected workflow input>
+rustup target add wasm32-wasi
+```
+
+5. Call your workflow with input
+
+```
+deadlift call --fn-name <wasm function name> --input <wasm function input>
 ```
