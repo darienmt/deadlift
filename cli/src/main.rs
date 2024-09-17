@@ -1,11 +1,5 @@
 use clap::{Parser, Subcommand};
 
-mod module;
-use module::*;
-
-mod workflow;
-use workflow::*;
-
 pub mod utils;
 
 mod agent;
@@ -14,8 +8,8 @@ use agent::*;
 mod user;
 use user::*;
 
-mod generate;
-use generate::*;
+mod project;
+use project::*;
 
 /// deadlift
 #[derive(Parser)]
@@ -27,20 +21,14 @@ struct DeadliftArgs {
 
 #[derive(Subcommand)]
 enum DeadliftCommands {
-    /// Commands for interacting with deadlift modules
-    Module(ModuleArgs),
-
-    /// Commands for interacting with deadlift workflows
-    Workflow(WorkflowArgs),
-
     /// Commands for interacting with deadlift agents
     Agent(AgentArgs),
 
     /// Commands for interacting with your ZeroSync user account
     User(UserArgs),
 
-    /// Command for generating a deadlift source project
-    Generate(GenerateArgs),
+    /// Command for interacting with deadlift source projects
+    Project(ProjectArgs),
 }
 
 #[tokio::main]
@@ -48,10 +36,8 @@ async fn main() -> anyhow::Result<()> {
     let args = DeadliftArgs::parse();
 
     match args.command {
-        DeadliftCommands::Module(module_args) => run_module_command(module_args).await,
-        DeadliftCommands::Workflow(module_args) => run_workflow_command(module_args).await,
         DeadliftCommands::Agent(agent_args) => run_agent_command(agent_args).await,
         DeadliftCommands::User(user_args) => run_user_command(user_args).await,
-        DeadliftCommands::Generate(user_args) => run_generate_command(user_args).await,
+        DeadliftCommands::Project(project_args) => run_project_command(project_args).await,
     }
 }
