@@ -62,7 +62,7 @@ pub async fn run_generate_command(args: GenerateArgs) -> anyhow::Result<()> {
 
     run_cmd_in_dir(Some(&args.name), "git", &["remote", "remove", "origin"])?;
 
-    println!("successfully generated {} module", args.name);
+    println!("successfully generated {} project", args.name);
 
     Ok(())
 }
