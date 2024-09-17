@@ -25,6 +25,8 @@ pub static DEFAULT_NATS_URL: LazyLock<&'static str> =
 
 // refactor into agent crate? then engine mainly exports call fn for embedded? or split that into another new sdk crate
 pub async fn run(config_bytes: Vec<u8>) -> Result<EngineThreadHandles> {
+    extism::set_log_callback(|v| print!("{}", v), "info")?;
+
     let config = require_config(config_bytes)?;
 
     // TODO-- move all object items into nats crate
@@ -71,7 +73,7 @@ pub async fn run(config_bytes: Vec<u8>) -> Result<EngineThreadHandles> {
     };
 
     let watcher_handle_opt = if config.nats.enable_watcher_thread {
-        Some(start_watcher_thread(modules, std::sync::Arc::new(module_names), nc, plugin).await)
+        Some(start_watcher_thread(std::sync::Arc::new(module_names), nc, plugin).await)
     } else {
         None
     };

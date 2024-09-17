@@ -6,6 +6,7 @@ use std::{
 use anyhow::{anyhow, Result};
 use extism::{Manifest, Plugin, PluginBuilder, Wasm};
 use futures_util::StreamExt;
+use tokio::io::AsyncReadExt;
 
 use crate::{config::NatsConfig, utils::get_or_create_object_store, MODULE_BUCKET_NAME};
 
@@ -42,7 +43,6 @@ pub fn get_wasm_map() -> Arc<RwLock<HashMap<String, String>>> {
 }
 
 pub async fn start_watcher_thread(
-    modules: Vec<Wasm>,
     module_object_names: Arc<std::collections::HashSet<String>>,
     nc: async_nats::Client,
     plugin: Arc<Mutex<Plugin>>,
@@ -59,9 +59,23 @@ pub async fn start_watcher_thread(
 
         while let Some(res) = watcher.next().await {
             if let Ok(change) = res {
+                // compare nats object digests
                 if module_object_names.clone().contains(&change.name) {
+                    let mut updated_modules = vec![];
+                    for object_name in module_object_names.iter() {
+                        let mut wasm_object = wasm_store.get(&object_name).await.unwrap();
+
+                        let mut wasm_bytes = vec![];
+                        wasm_object.read_to_end(&mut wasm_bytes).await.unwrap();
+
+                        updated_modules.push(Wasm::Data {
+                            data: wasm_bytes,
+                            meta: extism::WasmMetadata::default(),
+                        });
+                    }
+
                     // TODO-- use util from plugin mod to do this
-                    let updated_manifest = Manifest::new(modules.clone());
+                    let updated_manifest = Manifest::new(updated_modules);
 
                     let updated_plugin = PluginBuilder::new(updated_manifest)
                         .with_wasi(true)
