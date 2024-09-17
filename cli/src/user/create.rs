@@ -56,25 +56,22 @@ pub async fn run_create_command(args: CreateArgs) -> anyhow::Result<()> {
     let mut creds_file = std::fs::File::create(creds_path)?;
     creds_file.write_all(user_creds.as_bytes())?;
 
+    println!("successfully created {} user", args.email);
+
     Ok(())
 }
 
 fn get_create_user_payload_bytes(email: &str, password: &str, key: Vec<u8>) -> Vec<u8> {
-    // REVIEW-- send key as hex so that it is all json bytes, not this weird split
-
-    let json_str = format!(
+    format!(
         r#"{{
             "email": "{}",
-            "password": "{}"
+            "password": "{}",
+            "key": "{}"
         }}"#,
-        email, password
-    );
-
-    let mut buf = Vec::new();
-
-    buf.extend_from_slice(json_str.as_bytes());
-    buf.extend_from_slice(b"\x1F");
-    buf.extend_from_slice(key.as_slice());
-
-    buf
+        email,
+        password,
+        hex::encode(key)
+    )
+    .as_bytes()
+    .to_vec()
 }

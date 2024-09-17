@@ -35,11 +35,13 @@ pub async fn run_publish_command(args: PublishArgs) -> anyhow::Result<()> {
 
         let mut file = tokio::fs::File::open(data.wasm_path).await?;
         wasm_store.put(data.name.as_str(), &mut file).await?;
+
+        println!("successfully published {} module", data.name);
     }
 
     // TODO-- allow user to pass workflow.yml path
 
-    let mut file = tokio::fs::File::open("workflow.yml").await?;
+    let mut file = tokio::fs::File::open("./workflow.yml").await?;
 
     let mut workflow_bytes = vec![];
     file.read_to_end(&mut workflow_bytes).await?;
