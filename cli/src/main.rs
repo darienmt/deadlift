@@ -11,6 +11,9 @@ use user::*;
 mod project;
 use project::*;
 
+mod call;
+use call::*;
+
 /// deadlift
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
@@ -29,6 +32,9 @@ enum DeadliftCommands {
 
     /// Command for interacting with deadlift source projects
     Project(ProjectArgs),
+
+    /// Command for interacting with deadlift modules and workflows
+    Call(CallArgs),
 }
 
 #[tokio::main]
@@ -39,5 +45,6 @@ async fn main() -> anyhow::Result<()> {
         DeadliftCommands::Agent(agent_args) => run_agent_command(agent_args).await,
         DeadliftCommands::User(user_args) => run_user_command(user_args).await,
         DeadliftCommands::Project(project_args) => run_project_command(project_args).await,
+        DeadliftCommands::Call(call_args) => run_call_command(call_args).await,
     }
 }
