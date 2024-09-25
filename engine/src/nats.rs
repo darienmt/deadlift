@@ -114,7 +114,10 @@ pub async fn start_execution_thread(
                 // should the last subject part be the fn_name?
                 // it should have more connection to a workflow
 
-                let res = plugin.call::<Vec<u8>, Vec<u8>>(fn_name, msg.payload.into());
+                let res = tokio::task::block_in_place(|| {
+                    plugin.call::<Vec<u8>, Vec<u8>>(fn_name, msg.payload.into())
+                });
+
                 // reset memory ?
 
                 match res {

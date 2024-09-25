@@ -1,11 +1,19 @@
 use std::sync::{Arc, Mutex, OnceLock};
 
 use anyhow::{anyhow, Result};
-use extism::{Manifest, Plugin, PluginBuilder, Wasm};
+use extism::*;
 
 use crate::config::PluginConfig;
 
 static PLUGIN: OnceLock<Arc<Mutex<Plugin>>> = OnceLock::new();
+
+host_fn!(query_postgres(config_str: String, query: String) -> String {
+    let mut client = postgres::Client::connect(&config_str, postgres::NoTls)?;
+
+    let rows = client.query(&query, &[]).unwrap();
+
+    Ok(format!("{rows:?}"))
+});
 
 pub async fn require_plugin(
     wasm: Vec<Wasm>,
@@ -21,6 +29,13 @@ pub async fn require_plugin(
 
         let plugin = PluginBuilder::new(manifest)
             .with_wasi(plugin_config.wasi)
+            .with_function(
+                "query_postgres",
+                [PTR, PTR],
+                [PTR],
+                UserData::default(),
+                query_postgres,
+            )
             .build()?;
 
         if PLUGIN.set(Arc::new(Mutex::new(plugin))).is_err() {
