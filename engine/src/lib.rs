@@ -12,6 +12,8 @@ pub mod nats;
 pub mod plugin;
 pub mod utils;
 
+pub(crate) mod host_functions;
+
 pub struct EngineThreadHandles {
     pub execution_handle_opt: Option<JoinHandle<()>>,
     pub watcher_handle_opt: Option<JoinHandle<()>>,

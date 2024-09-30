@@ -4,11 +4,16 @@ use std::{
 };
 
 use anyhow::{anyhow, Result};
-use extism::{Manifest, Plugin, PluginBuilder, Wasm};
+use extism::*;
 use futures_util::StreamExt;
 use tokio::io::AsyncReadExt;
 
-use crate::{config::NatsConfig, utils::get_or_create_object_store, MODULE_BUCKET_NAME};
+use crate::host_functions::*;
+
+use crate::{
+    config::NatsConfig, host_functions::batch_http_request, utils::get_or_create_object_store,
+    MODULE_BUCKET_NAME,
+};
 
 const DEADLIFT_EXECUTIONS_QUEUE_GROUP: &str = "deadlift_executions";
 
@@ -79,6 +84,27 @@ pub async fn start_watcher_thread(
 
                     let updated_plugin = PluginBuilder::new(updated_manifest)
                         .with_wasi(true)
+                        .with_function(
+                            "batch_execute_postgres",
+                            [PTR, PTR],
+                            [PTR],
+                            UserData::default(),
+                            batch_execute_postgres,
+                        )
+                        .with_function(
+                            "query_postgres",
+                            [PTR, PTR, PTR],
+                            [PTR],
+                            UserData::default(),
+                            query_postgres,
+                        )
+                        .with_function(
+                            "batch_http_request",
+                            [PTR],
+                            [PTR],
+                            UserData::default(),
+                            batch_http_request,
+                        )
                         .build()
                         .unwrap();
 
