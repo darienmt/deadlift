@@ -468,7 +468,7 @@ dependencies = [
  "ctrlc",
  "directories",
  "engine",
- "extism",
+ "extism 1.6.0",
  "hex",
  "reqwest",
  "serde",
@@ -916,7 +916,7 @@ dependencies = [
  "async-nats",
  "clap",
  "directories",
- "extism",
+ "extism 0.0.0+replaced-by-ci",
  "futures",
  "futures-util",
  "petgraph",
@@ -946,14 +946,39 @@ dependencies = [
 
 [[package]]
 name = "extism"
+version = "0.0.0+replaced-by-ci"
+source = "git+https://github.com/extism/extism.git?branch=pool#4d16d168534a6a65fc9a479cecc68f04693a1eae"
+dependencies = [
+ "anyhow",
+ "cbindgen",
+ "extism-convert 0.0.0+replaced-by-ci",
+ "extism-manifest 0.0.0+replaced-by-ci",
+ "glob",
+ "libc",
+ "serde",
+ "serde_json",
+ "sha2",
+ "toml",
+ "tracing",
+ "tracing-subscriber",
+ "ureq",
+ "url",
+ "uuid",
+ "wasi-common",
+ "wasmtime",
+ "wiggle",
+]
+
+[[package]]
+name = "extism"
 version = "1.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "74614574b03f716c9d1439d46dbd993dc9ed778ebd149bec40a2d32142297b78"
 dependencies = [
  "anyhow",
  "cbindgen",
- "extism-convert",
- "extism-manifest",
+ "extism-convert 1.6.0",
+ "extism-manifest 1.6.0",
  "glob",
  "libc",
  "serde",
@@ -972,6 +997,21 @@ dependencies = [
 
 [[package]]
 name = "extism-convert"
+version = "0.0.0+replaced-by-ci"
+source = "git+https://github.com/extism/extism.git?branch=pool#4d16d168534a6a65fc9a479cecc68f04693a1eae"
+dependencies = [
+ "anyhow",
+ "base64 0.22.1",
+ "bytemuck",
+ "extism-convert-macros 0.0.0+replaced-by-ci",
+ "prost",
+ "rmp-serde",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "extism-convert"
 version = "1.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "573b553cad4f82bd5625825803744815f40de4524fac5a6a6d1f137ab60c878b"
@@ -979,11 +1019,23 @@ dependencies = [
  "anyhow",
  "base64 0.22.1",
  "bytemuck",
- "extism-convert-macros",
+ "extism-convert-macros 1.6.0",
  "prost",
  "rmp-serde",
  "serde",
  "serde_json",
+]
+
+[[package]]
+name = "extism-convert-macros"
+version = "0.0.0+replaced-by-ci"
+source = "git+https://github.com/extism/extism.git?branch=pool#4d16d168534a6a65fc9a479cecc68f04693a1eae"
+dependencies = [
+ "manyhow",
+ "proc-macro-crate",
+ "proc-macro2",
+ "quote",
+ "syn",
 ]
 
 [[package]]
@@ -997,6 +1049,16 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn",
+]
+
+[[package]]
+name = "extism-manifest"
+version = "0.0.0+replaced-by-ci"
+source = "git+https://github.com/extism/extism.git?branch=pool#4d16d168534a6a65fc9a479cecc68f04693a1eae"
+dependencies = [
+ "base64 0.22.1",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]

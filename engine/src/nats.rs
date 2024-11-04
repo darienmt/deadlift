@@ -1,19 +1,12 @@
 use std::{
     collections::HashMap,
-    sync::{Arc, LazyLock, Mutex, OnceLock, RwLock},
+    sync::{Arc, LazyLock, OnceLock, RwLock},
 };
 
 use anyhow::{anyhow, Result};
-use extism::*;
 use futures_util::StreamExt;
-use tokio::io::AsyncReadExt;
 
-use crate::host_functions::*;
-
-use crate::{
-    config::NatsConfig, host_functions::batch_http_request, utils::get_or_create_object_store,
-    MODULE_BUCKET_NAME,
-};
+use crate::config::NatsConfig;
 
 const DEADLIFT_EXECUTIONS_QUEUE_GROUP: &str = "deadlift_executions";
 
@@ -47,85 +40,12 @@ pub fn get_wasm_map() -> Arc<RwLock<HashMap<String, String>>> {
     WASM_MAP.clone()
 }
 
-pub async fn start_watcher_thread(
-    module_object_names: Arc<std::collections::HashSet<String>>,
-    nc: async_nats::Client,
-    plugin: Arc<Mutex<Plugin>>,
-) -> tokio::task::JoinHandle<()> {
-    tokio::task::spawn(async move {
-        // FIXME------ this does not currently work
-        let js = async_nats::jetstream::new(nc.clone());
-
-        let wasm_store = get_or_create_object_store(&js, MODULE_BUCKET_NAME)
-            .await
-            .unwrap();
-
-        let mut watcher = wasm_store.watch().await.unwrap();
-
-        while let Some(res) = watcher.next().await {
-            if let Ok(change) = res {
-                // compare nats object digests
-                if module_object_names.clone().contains(&change.name) {
-                    let mut updated_modules = vec![];
-                    for object_name in module_object_names.iter() {
-                        let mut wasm_object = wasm_store.get(&object_name).await.unwrap();
-
-                        let mut wasm_bytes = vec![];
-                        wasm_object.read_to_end(&mut wasm_bytes).await.unwrap();
-
-                        updated_modules.push(Wasm::Data {
-                            data: wasm_bytes,
-                            meta: extism::WasmMetadata::default(),
-                        });
-                    }
-
-                    // TODO-- use util from plugin mod to do this
-                    let updated_manifest = Manifest::new(updated_modules);
-
-                    let updated_plugin = PluginBuilder::new(updated_manifest)
-                        .with_wasi(true)
-                        .with_function(
-                            "batch_execute_postgres",
-                            [PTR, PTR],
-                            [PTR],
-                            UserData::default(),
-                            batch_execute_postgres,
-                        )
-                        .with_function(
-                            "query_postgres",
-                            [PTR, PTR, PTR],
-                            [PTR],
-                            UserData::default(),
-                            query_postgres,
-                        )
-                        .with_function(
-                            "batch_http_request",
-                            [PTR],
-                            [PTR],
-                            UserData::default(),
-                            batch_http_request,
-                        )
-                        .build()
-                        .unwrap();
-
-                    let plugin_guard = plugin.clone();
-
-                    {
-                        let mut plugin = plugin_guard.lock().unwrap();
-                        *plugin = updated_plugin;
-                    }
-                }
-            }
-        }
-    })
-}
-
 pub async fn start_execution_thread(
     nc: async_nats::Client,
-    plugin: Arc<Mutex<Plugin>>,
+    pool: extism::Pool,
 ) -> tokio::task::JoinHandle<()> {
     tokio::task::spawn(async move {
-        let mut subscriber = nc
+        let subscriber = nc
             .queue_subscribe(
                 "deadlift.executions.*",
                 String::from(DEADLIFT_EXECUTIONS_QUEUE_GROUP),
@@ -133,32 +53,40 @@ pub async fn start_execution_thread(
             .await
             .unwrap();
 
-        while let Some(msg) = subscriber.next().await {
-            let output = if let Ok(mut plugin) = plugin.try_lock() {
-                let fn_name = msg.subject.as_str().split('.').last().unwrap();
+        let _ = subscriber
+            .for_each_concurrent(100, |msg| {
+                let nc = nc.clone();
+                let pool = pool.clone();
 
-                // should the last subject part be the fn_name?
-                // it should have more connection to a workflow
+                async move {
+                    let res = tokio::task::spawn_blocking(move || {
+                        match pool.get(
+                            &String::from(msg.subject.as_str()),
+                            std::time::Duration::from_millis(500),
+                        ) {
+                            Ok(Some(pool_plugin)) => pool_plugin
+                                .call::<Vec<u8>, Vec<u8>>("probe_urls", msg.payload.to_vec()),
+                            Ok(None) => {
+                                Err(extism::Error::msg("failed to resolve plugin; timed out"))
+                            }
+                            Err(e) => {
+                                Err(extism::Error::msg(format!("failed to resolve plugin; {e}")))
+                            }
+                        }
+                    })
+                    .await
+                    .unwrap();
 
-                let res = tokio::task::block_in_place(|| {
-                    plugin.call::<Vec<u8>, Vec<u8>>(fn_name, msg.payload.into())
-                });
-
-                // reset memory ?
-
-                match res {
-                    Ok(bytes) => bytes,
-                    Err(e) => e.to_string().into_bytes(),
+                    if let Some(reply) = msg.reply {
+                        nc.publish(
+                            reply,
+                            res.unwrap_or_else(|e| e.to_string().into_bytes()).into(),
+                        )
+                        .await
+                        .unwrap();
+                    }
                 }
-            } else {
-                anyhow::anyhow!("failed to acquire plugin lock")
-                    .to_string()
-                    .into_bytes()
-            };
-
-            if let Some(reply_subject) = msg.reply {
-                nc.publish(reply_subject, output.into()).await.unwrap();
-            }
-        }
+            })
+            .await;
     })
 }

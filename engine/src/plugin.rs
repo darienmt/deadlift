@@ -1,19 +1,17 @@
-use std::sync::{Arc, Mutex, OnceLock};
+use std::sync::OnceLock;
 
 use anyhow::{anyhow, Result};
 use extism::*;
 
-use crate::host_functions::*;
-
 use crate::config::PluginConfig;
 
-static PLUGIN: OnceLock<Arc<Mutex<Plugin>>> = OnceLock::new();
+static PLUGIN_POOL: OnceLock<extism::Pool> = OnceLock::new();
 
-pub async fn require_plugin(
+pub async fn require_plugin_pool(
     wasm: Vec<Wasm>,
     plugin_config: &PluginConfig,
-) -> Result<Arc<Mutex<Plugin>>> {
-    if PLUGIN.get().is_none() {
+) -> Result<extism::Pool> {
+    if PLUGIN_POOL.get().is_none() {
         let mut manifest =
             Manifest::new(wasm).with_allowed_hosts(plugin_config.allowed_hosts.clone().into_iter());
 
@@ -21,38 +19,18 @@ pub async fn require_plugin(
             manifest = manifest.with_config(extism_config.iter());
         }
 
-        let plugin = PluginBuilder::new(manifest)
-            .with_wasi(plugin_config.wasi)
-            .with_function(
-                "batch_execute_postgres",
-                [PTR, PTR],
-                [PTR],
-                UserData::default(),
-                batch_execute_postgres,
-            )
-            .with_function(
-                "query_postgres",
-                [PTR, PTR, PTR],
-                [PTR],
-                UserData::default(),
-                query_postgres,
-            )
-            .with_function(
-                "batch_http_request",
-                [PTR],
-                [PTR],
-                UserData::default(),
-                batch_http_request,
-            )
-            .build()?;
+        let plugin_builder = PluginBuilder::new(manifest).with_wasi(plugin_config.wasi);
 
-        if PLUGIN.set(Arc::new(Mutex::new(plugin))).is_err() {
+        let pool = extism::Pool::new(100);
+        pool.add_builder("probe_urls".to_string(), plugin_builder);
+
+        if PLUGIN_POOL.set(pool).is_err() {
             // log instead of return here?
             return Err(anyhow!("failed to initialize plugin"));
         }
     }
 
-    if let Some(guard) = PLUGIN.get() {
+    if let Some(guard) = PLUGIN_POOL.get() {
         return Ok(guard.clone());
     }
 

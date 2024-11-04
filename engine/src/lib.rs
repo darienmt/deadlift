@@ -3,8 +3,8 @@ use std::sync::LazyLock;
 use anyhow::Result;
 use config::require_config;
 use extism::Wasm;
-use nats::{require_nats, start_execution_thread, start_watcher_thread};
-use plugin::require_plugin;
+use nats::{require_nats, start_execution_thread};
+use plugin::require_plugin_pool;
 use tokio::{io::AsyncReadExt, task::JoinHandle};
 
 pub mod config;
@@ -12,11 +12,8 @@ pub mod nats;
 pub mod plugin;
 pub mod utils;
 
-pub(crate) mod host_functions;
-
 pub struct EngineThreadHandles {
     pub execution_handle_opt: Option<JoinHandle<()>>,
-    pub watcher_handle_opt: Option<JoinHandle<()>>,
 }
 
 pub const MODULE_BUCKET_NAME: &str = "wasm";
@@ -66,22 +63,15 @@ pub async fn run(config_bytes: Vec<u8>) -> Result<EngineThreadHandles> {
         module_names.insert(stage.object_name.clone());
     }
 
-    let plugin = require_plugin(modules.clone(), &config.plugin).await?;
+    let pool = require_plugin_pool(modules.clone(), &config.plugin).await?;
 
     let execution_handle_opt = if config.nats.enable_execution_thread {
-        Some(start_execution_thread(nc.clone(), plugin.clone()).await)
-    } else {
-        None
-    };
-
-    let watcher_handle_opt = if config.nats.enable_watcher_thread {
-        Some(start_watcher_thread(std::sync::Arc::new(module_names), nc, plugin).await)
+        Some(start_execution_thread(nc.clone(), pool).await)
     } else {
         None
     };
 
     Ok(EngineThreadHandles {
         execution_handle_opt,
-        watcher_handle_opt,
     })
 }

@@ -26,7 +26,6 @@ async fn main() -> Result<()> {
             },
             recv(ctrl_c_events) -> _ => {
                 if let Some(v) = handles.execution_handle_opt { v.abort() }
-                if let Some(v) = handles.watcher_handle_opt { v.abort() }
                 break;
             }
             // default => {}
